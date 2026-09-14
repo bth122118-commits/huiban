@@ -1,0 +1,1044 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>汇办 · 任务追踪台</title>
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+ * design-systems/default/tokens.css
+ *
+ * Structured token bindings for "Neutral Modern" — the canonical
+ * starter design system. This file is the *machine-readable* form of
+ * the values described in `DESIGN.md`. Agents are expected to paste
+ * the `:root { … }` block verbatim into the first `<style>` of every
+ * artifact they generate against this design system, then reference
+ * tokens via `var(--name)` from then on.
+ *
+ * Why this file exists:
+ *   DESIGN.md gives humans context ("Accent #2F6FEB — primary CTAs"),
+ *   but agents have to translate prose names like "Accent" into the
+ *   standard token names the lint enforces (`--accent`). That
+ *   translation is where token misuse happens. This file pre-translates
+ *   the brand once, so agents copy structure instead of inventing it.
+ *
+ * Contract sources:
+ *   - Standard token names: craft/color.md
+ *       (--bg / --surface / --fg / --muted / --border / --accent
+ *        / --success / --warn / --danger)
+ *   - Display-face contract: craft/anti-ai-slop.md
+ *       (--font-display, must be referenced via var())
+ *   - Lint enforcement: apps/daemon/src/lint-artifact.ts
+ *       (raw-hex >12 outside :root → P1; indigo laundering → P0)
+ *
+ * Schema notes (the shared schema grew from kami's stress test —
+ * see design-systems/kami/tokens.css for the rich form, and the
+ * #Gap N tags below for what each addition resolves):
+ *   #Gap 1  — 4-level foreground ramp (fg / fg-2 / muted / meta)
+ *   #Gap 2  — 3-level surface (bg / surface / surface-warm)
+ *   #Gap 3  — 2-level border (border / border-soft)
+ *   #Gap 4  — accent-hover binds to value, not formula
+ *   #Gap 5  — ring elevation as a first-class level (--elev-ring)
+ *
+ * Default doesn't differentiate every level kami needs, so the
+ * shallow tokens (`--fg-2`, `--meta`, `--surface-warm`, `--border-soft`)
+ * collapse to their richer siblings via `var()`. The names still
+ * exist so components can reference them uniformly across brands.
+ *
+ * Keep this file additive: never invent token names not also documented
+ * in DESIGN.md or the craft contracts. New brands cloning this template
+ * should overwrite values, not rename keys.
+ * ─────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ─── Surface (3 levels — #Gap 2) ─────────────────────────────────
+   * Per craft/color.md: never pure black, never pure white. Default
+   * uses #FAFAFA for bg and #FFFFFF for surface — the cream-to-white
+   * contrast gives cards lift without a shadow. `--surface-warm` is a
+   * schema slot for brands that need a tertiary tier (kami's warm-sand
+   * button bg); default has no third tier and aliases it to surface. */
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-warm: var(--surface);   /* alias — default has no warm tier */
+
+  /* ─── Foreground ramp (4 levels — #Gap 1) ───────────────────────
+   * Default differentiates only two text levels (primary + muted).
+   * `--fg-2` and `--meta` are schema slots for brands with richer
+   * ramps (kami uses near-black / dark-warm / olive / stone). They
+   * alias here so components targeting the full ramp resolve. */
+  --fg: #111111;
+  --fg-2: var(--fg);                /* alias — default has no secondary tier */
+  --muted: #6b6b6b;
+  --meta: var(--muted);             /* alias — default has no metadata tier */
+
+  /* ─── Border (2 levels — #Gap 3) ────────────────────────────────
+   * Default has one border weight; `--border-soft` is a schema slot
+   * for brands with row-separator vs card-edge differentiation. */
+  --border: #e5e5e5;
+  --border-soft: var(--border);     /* alias — default has no soft tier */
+
+  /* ─── Accent ──────────────────────────────────────────────────────
+   * Cobalt — primary CTAs, links, ONE hero element per screen.
+   * Hard cap of 2 visible uses per screen is enforced by lint
+   * (`accent-overuse` P1 fires at >6 inline occurrences). */
+  --accent: #2f6feb;
+  --accent-on: #ffffff; /* fg when accent is the bg (e.g. button label) */
+
+  /* ─── Accent states (#Gap 4) ────────────────────────────────────
+   * Hover and active variants for any element using --accent as bg.
+   * Default's mid-luminance cobalt admits a black-mix formula
+   * cleanly; that's a brand-specific binding, NOT a schema rule.
+   * kami binds --accent-hover to var(--accent) (no color shift,
+   * hover via elevation) because ink-blue is too dark for further
+   * darkening to read; other brands with light accents must
+   * hand-pick.
+   *
+   * Schema rule: every brand provides --accent-hover and
+   * --accent-active. The binding strategy (formula / identity /
+   * hand-picked) is brand-decided.
+   *
+   * Why these two are tokens (and other tints stay inline):
+   *   - cross-component (button, chip, tab, dropdown all need them)
+   *   - cross-mode reversal (dark-mode hover should mix white, not
+   *     black — token re-binding is one line per mode)
+   *   - cross-brand customization (formula breaks on light accents)
+   *   - lint-enforceable contract (every brand must provide these)
+   * Other inline `color-mix(...)` calls in components don't yet hit
+   * any of the above — promote them to tokens when a second use
+   * appears. */
+  --accent-hover: color-mix(in oklab, var(--accent), black 8%);
+  --accent-active: color-mix(in oklab, var(--accent), black 14%);
+
+  /* ─── Semantic ────────────────────────────────────────────────────
+   * Reserved for state, not decoration. Keep total semantic-color
+   * pixels under 5% of the surface. */
+  --success: #17a34a;
+  --warn: #eab308;
+  --danger: #dc2626;
+
+  /* ─── Typography ──────────────────────────────────────────────────
+   * Inter for display is the documented "modern minimal" override
+   * to anti-ai-slop's serif-display rule (see DESIGN.md
+   * §Visual Theme & Atmosphere — "Calm, functional, quietly
+   * confident"). Other brands should rebind --font-display to a
+   * serif unless their direction is also tech/utility. */
+  --font-display: "Inter", -apple-system, system-ui, sans-serif;
+  --font-body: "Inter", -apple-system, system-ui, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", monospace;
+
+  /* Type scale (px) — direct copy of DESIGN.md §Typography Rules */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+  --text-3xl: 48px;
+  --text-4xl: 64px;
+
+  --leading-body: 1.5;
+  --leading-tight: 1.2;
+  --tracking-display: -0.01em; /* applied to display sizes ≥32px */
+
+  /* ─── Spacing ─────────────────────────────────────────────────────
+   * 4px base unit. Section rhythm (80/48/32) lives below as named
+   * tokens because DESIGN.md §Layout Principles treats them as
+   * breakpoint-specific decisions, not generic spacing. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-20: 80px;
+
+  --section-y-desktop: 80px;
+  --section-y-tablet: 48px;
+  --section-y-phone: 32px;
+
+  /* ─── Radius ──────────────────────────────────────────────────────
+   * Two intents: small (button/input) and medium (card/modal).
+   * `--radius-pill` reserved for chips/avatars; do not use it on
+   * cards or buttons. */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  /* ─── Elevation (3 levels — #Gap 5) ─────────────────────────────
+   * Default uses two levels (flat + raised blur shadow) per its own
+   * DESIGN.md §Depth & Elevation. The schema gains `--elev-ring` as
+   * a first-class level so brands using ring shadows as primary
+   * elevation (kami, paper, editorial) don't need to rebind
+   * --elev-raised away from blur. Default declares all three; ring
+   * is available for hairline edges where a 1px border would shift
+   * layout. No fourth level — that's neumorphism territory. */
+  --elev-flat: none;
+  --elev-ring: 0 0 0 1px var(--border);
+  --elev-raised: 0 2px 8px color-mix(in oklab, var(--fg), transparent 92%);
+
+  /* ─── Focus ring ──────────────────────────────────────────────────
+   * Single source of truth for keyboard-focus indicators. Every
+   * `:focus-visible` rule on buttons, inputs, links, and tabs must
+   * use this token — uniform behavior is itself a brand signal, and
+   * craft/accessibility-baseline.md treats focus visibility as a
+   * non-negotiable. Implemented as a `box-shadow` so it layers
+   * outside the element without affecting layout. */
+  --focus-ring: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 70%);
+
+  /* ─── Motion ──────────────────────────────────────────────────────
+   * Two durations + one easing curve, per anti-ai-slop's "short,
+   * purposeful transitions (150–250ms) with stable easing". Add a
+   * third duration only when a real interaction needs it; do not
+   * invent `--motion-slow` speculatively. */
+  --motion-fast: 150ms;            /* hover, focus, micro-states */
+  --motion-base: 200ms;            /* general state changes */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ─── Layout ──────────────────────────────────────────────────────
+   * Container width and per-breakpoint gutter. Skill-side responsive
+   * code reads these to decide grid columns. */
+  --container-max: 1200px;
+  --container-gutter-desktop: 24px;
+  --container-gutter-tablet: 16px;
+  --container-gutter-phone: 12px;
+}
+
+/* ============ base ============ */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button { font-family: inherit; cursor: pointer; }
+input, textarea, select { font-family: inherit; }
+svg { display: block; }
+.hidden { display: none !important; }
+
+/* ============ buttons ============ */
+.btn-primary, .btn-secondary, .icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  min-height: 44px; padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm); font-weight: 500;
+  border: 1px solid transparent;
+  transition: background var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
+}
+.btn-primary { background: var(--accent); color: var(--accent-on); }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:active { background: var(--accent-active); }
+.btn-secondary { background: transparent; color: var(--fg); border-color: var(--border); }
+.btn-secondary:hover { border-color: var(--muted); }
+.btn-primary:focus-visible, .btn-secondary:focus-visible, .icon-btn:focus-visible,
+.chip:focus-visible, .menu-item:focus-visible, .card:focus-visible, .step:focus-visible,
+.link:focus-visible, .select-btn:focus-visible, .switch:focus-visible, .advance:focus-visible {
+  outline: none; box-shadow: var(--focus-ring);
+}
+.icon-btn {
+  min-height: 44px; min-width: 44px; padding: 0;
+  background: transparent; color: var(--fg); border-color: transparent;
+  position: relative;
+}
+.icon-btn:hover { background: color-mix(in oklab, var(--fg), transparent 94%); }
+.icon-btn svg { width: 20px; height: 20px; }
+.link { color: var(--accent); background: none; border: none; padding: 0; font-size: var(--text-sm); }
+.link:hover { text-decoration: underline; }
+
+/* ============ topbar ============ */
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  height: 64px; padding: 0 var(--space-6);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: var(--space-3); }
+.logo {
+  width: 30px; height: 30px; border-radius: var(--radius-sm);
+  background: var(--accent); color: var(--accent-on);
+  display: grid; place-items: center;
+}
+.logo svg { width: 16px; height: 16px; }
+.brand-name { font-family: var(--font-display); font-weight: 600; font-size: var(--text-base); letter-spacing: -0.01em; }
+.template-switch { position: relative; margin-left: var(--space-2); }
+.select-btn {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  height: 44px; padding: 0 var(--space-4);
+  background: var(--surface); color: var(--fg);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: var(--text-sm); font-weight: 500;
+}
+.select-btn:hover { border-color: var(--muted); }
+.select-btn svg { width: 16px; height: 16px; color: var(--muted); }
+.menu {
+  position: absolute; top: calc(100% + 6px); left: 0; min-width: 240px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  box-shadow: var(--elev-raised); padding: var(--space-2); z-index: 50;
+}
+.menu-item {
+  display: flex; flex-direction: column; gap: 2px;
+  width: 100%; text-align: left; padding: var(--space-3);
+  background: transparent; border: none; border-radius: var(--radius-sm);
+}
+.menu-item:hover { background: color-mix(in oklab, var(--fg), transparent 95%); }
+.menu-item.active { background: color-mix(in oklab, var(--accent), transparent 92%); }
+.menu-item .mi-name { font-size: var(--text-sm); font-weight: 500; color: var(--fg); }
+.menu-item .mi-sub { font-size: var(--text-xs); color: var(--muted); }
+.menu-item.active .mi-name { color: var(--accent); }
+
+.topbar-actions { display: flex; align-items: center; gap: var(--space-2); }
+.search {
+  display: flex; align-items: center; gap: var(--space-2);
+  height: 44px; padding: 0 var(--space-3);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--muted);
+}
+.search:focus-within { border-color: var(--accent); box-shadow: var(--focus-ring); }
+.search svg { width: 18px; height: 18px; }
+.search input { border: none; outline: none; background: transparent; color: var(--fg); font-size: var(--text-sm); width: 160px; }
+.search input::placeholder { color: var(--muted); }
+.badge-count {
+  position: absolute; top: 4px; right: 4px;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--danger); color: var(--accent-on);
+  font-size: 11px; font-weight: 600; line-height: 18px; text-align: center;
+}
+
+/* ============ meta bar ============ */
+.meta-bar {
+  max-width: var(--container-max); margin: 0 auto;
+  padding: var(--space-6) var(--space-6) 0;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-6);
+  flex-wrap: wrap;
+}
+.eyebrow {
+  font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.04em;
+  color: var(--muted); text-transform: uppercase; margin: 0 0 var(--space-2);
+}
+.meta-title { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: var(--text-xl); letter-spacing: -0.01em; line-height: var(--leading-tight); }
+.meta-desc { margin: var(--space-2) 0 0; color: var(--muted); font-size: var(--text-sm); max-width: 560px; }
+.meta-right { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2); }
+.kw-row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
+.kw-label { font-size: var(--text-xs); color: var(--muted); }
+.keyword-chips { display: flex; gap: var(--space-1); flex-wrap: wrap; }
+.kw {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  padding: 2px 8px; border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--accent), transparent 92%);
+  color: var(--accent); border: 1px solid color-mix(in oklab, var(--accent), transparent 78%);
+}
+.switch-row { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--muted); }
+.switch {
+  position: relative; width: 36px; height: 20px; border-radius: var(--radius-pill);
+  background: var(--border); cursor: pointer; transition: background var(--motion-fast) var(--ease-standard);
+  flex: none; display: inline-block;
+}
+.switch[aria-checked="true"] { background: var(--accent); }
+.switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%; background: var(--surface);
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+.switch[aria-checked="true"]::after { transform: translateX(16px); }
+
+/* ============ filter bar ============ */
+.filter-bar {
+  max-width: var(--container-max); margin: 0 auto;
+  padding: var(--space-4) var(--space-6) 0;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.filter-chips { display: flex; gap: var(--space-2); }
+.chip {
+  height: 44px; padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--border); font-size: var(--text-sm); font-weight: 500;
+}
+.chip:hover { color: var(--fg); border-color: var(--muted); }
+.chip.active { background: var(--fg); color: var(--surface); border-color: var(--fg); }
+.count-label { font-size: var(--text-xs); color: var(--muted); font-family: var(--font-mono); }
+
+/* ============ board ============ */
+.board {
+  max-width: var(--container-max); margin: 0 auto;
+  padding: var(--space-4) var(--space-6) var(--space-12);
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(224px, 1fr);
+  gap: var(--space-4); align-items: start; overflow-x: auto;
+}
+.column { display: flex; flex-direction: column; gap: var(--space-3); }
+.col-head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.terminal { background: var(--success); }
+.col-name { font-weight: 600; font-size: var(--text-sm); }
+.col-count {
+  font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted);
+  margin-left: auto; padding: 1px 8px; border-radius: var(--radius-pill); background: color-mix(in oklab, var(--fg), transparent 93%);
+}
+.col-empty {
+  border: 1px dashed var(--border); border-radius: var(--radius-md);
+  padding: var(--space-6) var(--space-4); text-align: center;
+  color: var(--muted); font-size: var(--text-xs);
+}
+.card {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: var(--space-4); text-align: left; width: 100%;
+  transition: box-shadow var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard);
+}
+.card:hover { box-shadow: var(--elev-raised); border-color: color-mix(in oklab, var(--accent), transparent 60%); }
+.card-title { display: block; font-size: var(--text-sm); font-weight: 600; color: var(--fg); line-height: var(--leading-tight); margin: 0; }
+.card-desc { font-size: var(--text-xs); color: var(--muted); margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-meta { display: flex; align-items: center; gap: var(--space-2); }
+.src-badge {
+  font-family: var(--font-mono); font-size: 11px; line-height: 1;
+  padding: 3px 7px; border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--fg), transparent 93%); color: var(--muted);
+  border: 1px solid var(--border-soft);
+}
+.src-badge.mail { color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 92%); border-color: color-mix(in oklab, var(--accent), transparent 78%); }
+.src-badge.excel { color: var(--success); background: color-mix(in oklab, var(--success), transparent 92%); border-color: color-mix(in oklab, var(--success), transparent 78%); }
+.card-footer { display: flex; align-items: center; gap: var(--space-2); margin-top: auto; }
+.avatar {
+  width: 26px; height: 26px; border-radius: 50%; flex: none;
+  display: grid; place-items: center; font-size: var(--text-xs); font-weight: 600;
+  background: color-mix(in oklab, var(--fg), transparent 90%); color: var(--fg);
+  border: 1px solid var(--border);
+}
+.avatar.self { background: var(--accent); color: var(--accent-on); border-color: var(--accent); }
+.due { font-size: var(--text-xs); color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
+.due svg { width: 13px; height: 13px; }
+.advance {
+  margin-left: auto; width: 36px; height: 36px; flex: none;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: transparent; color: var(--muted);
+  display: grid; place-items: center;
+}
+.advance:hover { color: var(--accent); border-color: var(--accent); }
+.advance svg { width: 16px; height: 16px; }
+.advance.done { color: var(--success); border-color: var(--success); cursor: default; }
+
+/* ============ drawer ============ */
+.overlay { position: fixed; inset: 0; background: color-mix(in oklab, var(--fg), transparent 60%); z-index: 60; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 400px; max-width: 92vw;
+  background: var(--surface); border-left: 1px solid var(--border); z-index: 70;
+  display: flex; flex-direction: column;
+  box-shadow: var(--elev-raised);
+  transform: translateX(100%); transition: transform var(--motion-base) var(--ease-standard);
+}
+.drawer.open { transform: translateX(0); }
+.drawer-head { display: flex; align-items: center; justify-content: space-between; padding: var(--space-5) var(--space-5) var(--space-4); border-bottom: 1px solid var(--border); }
+.drawer-title { font-family: var(--font-display); font-weight: 600; font-size: var(--text-base); margin: 0; }
+.drawer-sub { font-size: var(--text-xs); color: var(--muted); margin: var(--space-1) 0 0; }
+.drawer-body { flex: 1; overflow-y: auto; padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+.draft {
+  border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4);
+  display: flex; flex-direction: column; gap: var(--space-3); background: var(--surface);
+}
+.draft.from { font-size: var(--text-xs); color: var(--muted); }
+.draft.subject { font-size: var(--text-sm); font-weight: 600; margin: 0; }
+.draft.snippet { font-size: var(--text-xs); color: var(--muted); margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.draft-route { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); }
+.draft-actions { display: flex; gap: var(--space-2); }
+.draft-actions .btn-secondary, .draft-actions .btn-primary { min-height: 40px; padding: 8px 14px; font-size: var(--text-xs); }
+
+/* ============ modal ============ */
+.modal-overlay { position: fixed; inset: 0; background: color-mix(in oklab, var(--fg), transparent 60%); z-index: 80; }
+.modal {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 90;
+  width: 560px; max-width: calc(100vw - 32px); max-height: 90vh; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--elev-raised);
+}
+.modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); padding: var(--space-5) var(--space-5) var(--space-4); border-bottom: 1px solid var(--border); }
+.modal-title { font-family: var(--font-display); font-weight: 600; font-size: var(--text-lg); margin: 0; }
+.modal-sub { font-size: var(--text-xs); color: var(--muted); margin: var(--space-1) 0 0; }
+.modal-body { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5); }
+.modal-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-top: 1px solid var(--border); }
+.modal-foot .btn-primary, .modal-foot .btn-secondary { min-height: 44px; }
+
+.field { display: flex; flex-direction: column; gap: var(--space-2); }
+.field label { font-size: var(--text-xs); font-weight: 500; color: var(--fg); }
+.field input, .field textarea, .field select {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px 12px; font-size: var(--text-sm); color: var(--fg); background: var(--surface);
+  width: 100%;
+}
+.field input:focus-visible, .field textarea:focus-visible, .field select:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+.field textarea { resize: vertical; min-height: 80px; }
+.field input::placeholder, .field textarea::placeholder { color: var(--muted); }
+.field-help { font-size: var(--text-xs); color: var(--muted); }
+.field.error input { border-color: var(--danger); }
+.field .error-msg { font-size: var(--text-xs); color: var(--danger); }
+
+/* stepper */
+.stepper { display: flex; align-items: center; gap: var(--space-1); overflow-x: auto; padding: var(--space-1) 0; }
+.step {
+  display: flex; align-items: center; gap: var(--space-2); flex: none;
+  padding: 8px 12px; min-height: 44px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: var(--text-xs); font-weight: 500;
+}
+.step .step-idx { width: 20px; height: 20px; border-radius: 50%; background: var(--border); color: var(--fg); display: grid; place-items: center; font-size: 11px; font-family: var(--font-mono); flex: none; }
+.step.current { border-color: var(--accent); color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 93%); }
+.step.current .step-idx { background: var(--accent); color: var(--accent-on); }
+.step.done { border-color: color-mix(in oklab, var(--success), transparent 60%); color: var(--success); }
+.step.done .step-idx { background: var(--success); color: var(--accent-on); }
+.step:hover:not(.current):not(.done) { border-color: var(--muted); color: var(--fg); }
+.step-connector { width: 16px; height: 1px; background: var(--border); flex: none; }
+
+/* activity log */
+.log { display: flex; flex-direction: column; gap: var(--space-2); }
+.log-item { display: flex; align-items: flex-start; gap: var(--space-3); font-size: var(--text-xs); }
+.log-avatar { width: 22px; height: 22px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 10px; font-weight: 600; background: color-mix(in oklab, var(--fg), transparent 90%); color: var(--fg); }
+.log-body { color: var(--muted); line-height: 1.5; }
+.log-body b { color: var(--fg); font-weight: 600; }
+.log-time { color: var(--meta); font-family: var(--font-mono); font-size: 11px; }
+
+/* import table */
+.preview-table { width: 100%; border-collapse: collapse; font-size: var(--text-xs); }
+.preview-table th, .preview-table td { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-soft); }
+.preview-table th { color: var(--muted); font-weight: 500; font-family: var(--font-mono); font-size: 11px; }
+.preview-table td { color: var(--fg); }
+
+/* toast */
+.toast {
+  position: fixed; bottom: var(--space-6); left: 50%; transform: translateX(-50%);
+  background: var(--fg); color: var(--surface);
+  padding: 10px 16px; border-radius: var(--radius-sm); font-size: var(--text-sm);
+  box-shadow: var(--elev-raised); z-index: 100; display: flex; align-items: center; gap: var(--space-2);
+  opacity: 0; transition: opacity var(--motion-base) var(--ease-standard); pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.toast svg { width: 16px; height: 16px; color: var(--success); }
+
+/* ============ responsive ============ */
+@media (max-width: 920px) {
+  .search input { width: 96px; }
+  .meta-bar { padding-top: var(--space-5); }
+  .meta-right { align-items: flex-start; width: 100%; }
+  .kw-row { justify-content: flex-start; }
+}
+@media (max-width: 720px) {
+  .topbar { padding: 0 var(--space-4); }
+  .topbar-actions { gap: var(--space-1); }
+  .search { display: none; }
+  .btn-secondary .btn-label { display: none; }
+  .btn-secondary { padding: 0 14px; }
+  .meta-bar, .filter-bar, .board { padding-left: var(--space-4); padding-right: var(--space-4); }
+  .board { grid-auto-flow: row; grid-auto-columns: 1fr; }
+  .brand-name { display: none; }
+  .select-btn { padding: 0 12px; }
+}
+</style>
+</head>
+<body>
+
+  <header class="topbar" data-od-id="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </span>
+      <span class="brand-name">汇办</span>
+      <div class="template-switch">
+        <button class="select-btn" id="templateBtn" aria-haspopup="true" aria-expanded="false" data-od-id="template-selector">
+          <span id="templateBtnLabel">通用待办</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="menu hidden" id="templateMenu" role="menu"></div>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input type="text" id="searchInput" placeholder="搜索任务…" aria-label="搜索任务">
+      </label>
+      <button class="icon-btn" id="inboxBtn" aria-label="收件箱">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7.5l9 6 9-6"/></svg>
+        <span class="badge-count hidden" id="inboxBadge">0</span>
+      </button>
+      <button class="btn-secondary" id="importBtn" data-od-id="import-button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        <span class="btn-label">导入</span>
+      </button>
+      <button class="btn-primary" id="newBtn" data-od-id="new-task-button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        新建任务
+      </button>
+    </div>
+  </header>
+
+  <section class="meta-bar" data-od-id="template-meta">
+    <div>
+      <p class="eyebrow" id="templateEyebrow">当前模板</p>
+      <h1 class="meta-title" id="templateTitle">通用待办</h1>
+      <p class="meta-desc" id="templateDesc"></p>
+    </div>
+    <div class="meta-right">
+      <div class="kw-row">
+        <span class="kw-label">关键词自动收任务</span>
+        <div class="keyword-chips" id="keywordChips"></div>
+      </div>
+      <div class="switch-row">
+        <span>邮件里命中关键词的待办会自动进收件箱</span>
+        <span class="switch" id="kwSwitch" role="switch" aria-checked="true" tabindex="0"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="filter-bar" data-od-id="filter-bar">
+    <div class="filter-chips" id="filterChips">
+      <button class="chip active" data-filter="all">全部</button>
+      <button class="chip" data-filter="mail">邮件</button>
+      <button class="chip" data-filter="excel">Excel</button>
+      <button class="chip" data-filter="manual">手动</button>
+    </div>
+    <span class="count-label" id="countLabel"></span>
+  </section>
+
+  <main class="board" id="board" data-od-id="board" aria-label="任务看板"></main>
+
+  <!-- inbox drawer -->
+  <div class="overlay hidden" id="inboxOverlay"></div>
+  <aside class="drawer" id="inboxDrawer" aria-label="收件箱" data-od-id="inbox-drawer">
+    <div class="drawer-head">
+      <div>
+        <h2 class="drawer-title">收件箱 · 待确认</h2>
+        <p class="drawer-sub">这些邮件命中了模板关键词，确认后会自动落到对应状态</p>
+      </div>
+      <button class="icon-btn" id="inboxClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="inboxBody"></div>
+  </aside>
+
+  <!-- task modal -->
+  <div class="modal-overlay hidden" id="modalOverlay"></div>
+  <div class="modal" id="taskModal" role="dialog" aria-modal="true" aria-label="任务详情" data-od-id="task-modal"></div>
+
+  <!-- import modal -->
+  <div class="modal-overlay hidden" id="importOverlay"></div>
+  <div class="modal" id="importModal" role="dialog" aria-modal="true" aria-label="导入 Excel" data-od-id="import-modal"></div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ── 数据：模板三件套 = 状态流水线 + 字段/描述 + 关键词 ── */
+  const TEAM = [
+    { name: "我", initial: "我", self: true },
+    { name: "陈工", initial: "陈", self: false },
+    { name: "李姐", initial: "李", self: false },
+    { name: "王师傅", initial: "王", self: false }
+  ];
+
+  const TEMPLATES = {
+    general: {
+      name: "通用待办",
+      desc: "适合任何团队：把散在邮件和 Excel 里的杂事收成一条清晰的进度流。",
+      statuses: ["待处理", "进行中", "待确认", "已完成"],
+      keywords: ["待办", "跟进", "确认", "报价", "发票"],
+      tasks: [
+        { id: "g1", title: "整理 Q3 客户反馈并汇总", desc: "把邮件里 12 位客户的反馈汇总成一张表，标出共性问题和下季度改进点。", source: "mail", assignee: "李姐", due: "2026-08-22", status: 1, log: [{ actor: "李姐", from: "待处理", to: "进行中", time: "昨天 16:20" }] },
+        { id: "g2", title: "更新官网定价页文案", desc: "新版定价页上线前，统一三个套餐的措辞与价格锚点。", source: "manual", assignee: "陈工", due: "2026-08-24", status: 0, log: [] },
+        { id: "g3", title: "确认与供应商的合同条款", desc: "Excel 里 6 家供应商的付款周期与账期不一致，需要逐条确认。", source: "excel", assignee: "我", due: "2026-08-21", status: 2, log: [{ actor: "我", from: "进行中", to: "待确认", time: "10:42" }] },
+        { id: "g4", title: "复核 6 月发票清单", desc: "比对 Excel 导入的发票明细与银行流水，标注差额。", source: "excel", assignee: "王师傅", due: "2026-08-23", status: 0, log: [] },
+        { id: "g5", title: "回复客户关于交付时间的邮件", desc: "客户问询项目二期的交付窗口，已回复并同步到共享日历。", source: "mail", assignee: "陈工", due: "2026-08-19", status: 3, log: [{ actor: "陈工", from: "待处理", to: "已完成", time: "周一 09:15" }] }
+      ],
+      inbox: [
+        { id: "gi1", from: "项目经理 · 林", subject: "跟进：官网更新确认", snippet: "麻烦今天下班前确认官网改版的验收项，我这边好安排上线。", keyword: "跟进", suggestStatus: 0 },
+        { id: "gi2", from: "客户 · 陈生", subject: "关于发票的疑问", snippet: "6 月的发票金额和合同对不上，麻烦帮忙查一下明细。", keyword: "发票", suggestStatus: 0 }
+      ]
+    },
+    construction: {
+      name: "工程交付",
+      desc: "为地盘/工程场景预制：从发现问题到递交发票，六步走完一单。",
+      statuses: ["发现问题", "出报价", "等承办商报价", "开工", "完工", "交发票"],
+      keywords: ["地盘", "报价", "开工", "完工", "发票", "承办商"],
+      tasks: [
+        { id: "c1", title: "地盘 A 座 3 楼发现渗水问题", desc: "承建商现场巡查发现 3 楼走廊天花板渗水，已拍照记录。", source: "mail", assignee: "我", due: "2026-08-18", status: 0, log: [] },
+        { id: "c2", title: "为渗水维修出报价单", desc: "根据现场照片估算维修工程量，出一版报价给业主确认。", source: "manual", assignee: "我", due: "2026-08-20", status: 1, log: [{ actor: "我", from: "发现问题", to: "出报价", time: "10:20" }] },
+        { id: "c3", title: "等承办商回报价", desc: "已把询价单发给承办商，等对方回复维修报价。", source: "mail", assignee: "王师傅", due: "2026-08-22", status: 2, log: [{ actor: "王师傅", from: "出报价", to: "等承办商报价", time: "11:05" }] },
+        { id: "c4", title: "漏水维修开工", desc: "承办商确认下周一进场，需提前协调停水时段。", source: "mail", assignee: "王师傅", due: "2026-08-25", status: 3, log: [{ actor: "王师傅", from: "等承办商报价", to: "开工", time: "昨天 15:40" }] },
+        { id: "c5", title: "确认完工验收", desc: "维修完成后到场验收，核对是否已解决渗水。", source: "manual", assignee: "陈工", due: "2026-08-28", status: 4, log: [{ actor: "陈工", from: "开工", to: "完工", time: "09:30" }] },
+        { id: "c6", title: "递交 3 月 Invoice", desc: "汇总本月已完工项目，整理发票清单递交给甲方。", source: "excel", assignee: "我", due: "2026-08-30", status: 5, log: [{ actor: "我", from: "完工", to: "交发票", time: "08:50" }] }
+      ],
+      inbox: [
+        { id: "ci1", from: "承办商 · 王", subject: "回复：渗水维修报价", snippet: "报价已发你邮箱，总共 12,800，含人工和材料，请查收。", keyword: "报价", suggestStatus: 2 },
+        { id: "ci2", from: "业主 · 周生", subject: "关于开工时间的确认", snippet: "下周一动工没问题，记得提前一天贴停水通知。", keyword: "开工", suggestStatus: 3 }
+      ]
+    },
+    sales: {
+      name: "销售跟进",
+      desc: "把询价邮件和跟进动作收进一条漏斗，谁在哪个阶段一目了然。",
+      statuses: ["新线索", "已联系", "报价中", "已签约", "已关闭"],
+      keywords: ["询价", "报价", "合同", "回款"],
+      tasks: [
+        { id: "s1", title: "新询价：办公家具一批", desc: "客户邮件询价 40 套工位家具，需本周内出报价。", source: "mail", assignee: "我", due: "2026-08-21", status: 0, log: [] },
+        { id: "s2", title: "回访客户 A 需求", desc: "客户 A 之前提到扩容，回访确认具体数量和预算。", source: "manual", assignee: "李姐", due: "2026-08-22", status: 1, log: [{ actor: "李姐", from: "新线索", to: "已联系", time: "昨天 14:10" }] },
+        { id: "s3", title: "发报价单给客户 B", desc: "按 Excel 里的成本表重新核算，发正式报价单。", source: "manual", assignee: "陈工", due: "2026-08-23", status: 2, log: [{ actor: "陈工", from: "已联系", to: "报价中", time: "10:05" }] },
+        { id: "s4", title: "合同签署跟进", desc: "客户 B 口头同意，等法务回传盖章合同。", source: "mail", assignee: "我", due: "2026-08-26", status: 3, log: [{ actor: "我", from: "报价中", to: "已签约", time: "11:30" }] }
+      ],
+      inbox: [
+        { id: "si1", from: "客户 · 刘", subject: "询价：会议室改造", snippet: "想了解一下会议室改造的报价，方便约个时间电话聊吗？", keyword: "询价", suggestStatus: 0 }
+      ]
+    }
+  };
+
+  const SOURCE_LABEL = { mail: "邮件", excel: "Excel", manual: "手动" };
+  const LS_KEY = "huiban.template";
+
+  let state = { templateId: "general", filter: "all", query: "", modalMode: "view", modalTaskId: null };
+  try { const saved = localStorage.getItem(LS_KEY); if (saved && TEMPLATES[saved]) state.templateId = saved; } catch (e) {}
+
+  const $ = (sel) => document.querySelector(sel);
+  const tpl = () => TEMPLATES[state.templateId];
+
+  /* ── 工具 ── */
+  function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+  function fmtDue(d) { if (!d) return ""; if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d.slice(5); return d; }
+  function nowTime() { const d = new Date(); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+  function findTask(id) { return tpl().tasks.find((t) => t.id === id); }
+  function assigneeOf(name) { return TEAM.find((m) => m.name === name) || TEAM[0]; }
+
+  function avatarHtml(name, extraClass) {
+    const m = assigneeOf(name);
+    return '<span class="avatar ' + (m.self ? "self" : "") + (extraClass ? " " + extraClass : "") + '" title="' + esc(m.name) + '">' + esc(m.initial) + "</span>";
+  }
+  function srcBadge(source) {
+    return '<span class="src-badge ' + source + '">' + SOURCE_LABEL[source] + "</span>";
+  }
+  function icon(name) {
+    const paths = {
+      clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+      check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+      arrow: '<path d="M9 6l6 6-6 6"/>',
+      close: '<path d="M6 6l12 12M18 6L6 18"/>',
+      trash: '<path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/>'
+    };
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + paths[name] + "</svg>";
+  }
+
+  /* ── 看板渲染 ── */
+  function visibleTasks() {
+    const q = state.query.trim().toLowerCase();
+    return tpl().tasks.filter((t) => {
+      if (state.filter !== "all" && t.source !== state.filter) return false;
+      if (q && !(t.title + " " + t.desc).toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }
+
+  function renderBoard() {
+    const board = $("#board");
+    const statuses = tpl().statuses;
+    const tasks = visibleTasks();
+    let html = "";
+    statuses.forEach((s, i) => {
+      const inCol = tasks.filter((t) => t.status === i);
+      const isLast = i === statuses.length - 1;
+      html += '<section class="column" data-od-id="column-' + i + '">';
+      html += '<div class="col-head"><span class="dot' + (isLast ? " terminal" : "") + '"></span><span class="col-name">' + esc(s) + '</span><span class="col-count">' + inCol.length + "</span></div>";
+      if (inCol.length === 0) {
+        html += '<div class="col-empty">暂无任务</div>';
+      } else {
+        inCol.forEach((t) => {
+          html += '<button class="card" data-od-id="task-card-' + t.id + '" data-id="' + t.id + '">';
+          html += '<div class="card-meta">' + srcBadge(t.source) + '<span class="due">' + icon("clock") + esc(fmtDue(t.due)) + "</span></div>";
+          html += '<span class="card-title">' + esc(t.title) + "</span>";
+          html += '<span class="card-desc">' + esc(t.desc) + "</span>";
+          html += '<div class="card-footer">' + avatarHtml(t.assignee) + (isLast
+            ? '<span class="advance done" title="已完成">' + icon("check") + "</span>"
+            : '<span class="advance" title="推进到下一状态" data-advance="' + t.id + '">' + icon("arrow") + "</span>") + "</div>";
+          html += "</button>";
+        });
+      }
+      html += "</section>";
+    });
+    board.innerHTML = html;
+    $("#countLabel").textContent = tasks.length + " 项任务 · " + statuses.length + " 个状态";
+  }
+
+  /* ── 模板元信息 ── */
+  function renderMeta() {
+    const t = tpl();
+    $("#templateTitle").textContent = t.name;
+    $("#templateDesc").textContent = t.desc;
+    $("#templateBtnLabel").textContent = t.name;
+    $("#keywordChips").innerHTML = t.keywords.map((k) => '<span class="kw">' + esc(k) + "</span>").join("");
+  }
+
+  function renderMenu() {
+    const menu = $("#templateMenu");
+    menu.innerHTML = Object.keys(TEMPLATES).map((id) => {
+      const t = TEMPLATES[id];
+      const active = id === state.templateId ? " active" : "";
+      return '<button class="menu-item' + active + '" data-tpl="' + id + '" role="menuitem"><span class="mi-name">' + esc(t.name) + "</span><span class=\"mi-sub\">" + esc(t.statuses.length) + " 个状态 · " + esc(t.keywords.length) + " 个关键词</span></button>";
+    }).join("");
+  }
+
+  /* ── 收件箱 ── */
+  function renderInbox() {
+    const drafts = tpl().inbox;
+    $("#inboxBadge").textContent = drafts.length;
+    $("#inboxBadge").classList.toggle("hidden", drafts.length === 0);
+    const body = $("#inboxBody");
+    if (drafts.length === 0) {
+      body.innerHTML = '<p style="color:var(--muted);font-size:var(--text-sm);text-align:center;padding:var(--space-12) 0;">收件箱已清空。<br>新的命中邮件会自动出现在这里。</p>';
+      return;
+    }
+    body.innerHTML = drafts.map((d) => {
+      return '<div class="draft" data-od-id="draft-' + d.id + '">'
+        + '<div class="draft-route"><span class="kw">' + esc(d.keyword) + '</span><span class="draft.from">' + esc(d.from) + "</span></div>"
+        + '<p class="draft subject">' + esc(d.subject) + "</p>"
+        + '<p class="draft snippet">' + esc(d.snippet) + "</p>"
+        + '<div class="draft-route"><span style="color:var(--muted)">建议状态</span><b>' + esc(tpl().statuses[d.suggestStatus]) + "</b></div>"
+        + '<div class="draft-actions">'
+        + '<button class="btn-secondary" data-ignore="' + d.id + '">忽略</button>'
+        + '<button class="btn-primary" data-confirm="' + d.id + '">确认入板</button>'
+        + "</div></div>";
+    }).join("");
+  }
+
+  function confirmDraft(id) {
+    const t = tpl();
+    const idx = t.inbox.findIndex((d) => d.id === id);
+    if (idx < 0) return;
+    const d = t.inbox[idx];
+    t.tasks.push({
+      id: d.id + "-" + Date.now(),
+      title: d.subject.replace(/^(回复|跟进|Re:|询价)[：:]\s*/, ""),
+      desc: d.snippet,
+      source: "mail",
+      assignee: "我",
+      due: "今天",
+      status: d.suggestStatus,
+      log: [{ actor: "系统", from: "收件箱", to: t.statuses[d.suggestStatus], time: nowTime() }]
+    });
+    t.inbox.splice(idx, 1);
+    toast("已按关键词「" + d.keyword + "」入板：" + t.statuses[d.suggestStatus]);
+    renderAll();
+  }
+  function ignoreDraft(id) {
+    const t = tpl();
+    t.inbox = t.inbox.filter((d) => d.id !== id);
+    toast("已忽略该邮件");
+    renderAll();
+  }
+
+  /* ── 任务详情 / 新建 ── */
+  function renderTaskModal() {
+    const t = tpl();
+    const isNew = state.modalMode === "create";
+    const task = isNew ? null : findTask(state.modalTaskId);
+    const m = $("#taskModal");
+    if (!task && !isNew) { closeModal(); return; }
+
+    const statuses = t.statuses;
+    const cur = task ? task.status : 0;
+    const stepper = statuses.map((s, i) => {
+      const cls = i === cur ? "current" : (i < cur ? "done" : "");
+      const conn = i < statuses.length - 1 ? '<span class="step-connector"></span>' : "";
+      return '<button class="step ' + cls + '" data-step="' + i + '"><span class="step-idx">' + (i < cur ? "✓" : i + 1) + "</span>" + esc(s) + "</button>" + conn;
+    }).join("");
+
+    const logHtml = task && task.log.length
+      ? task.log.map((l) => '<div class="log-item">' + avatarHtml(l.actor) + '<span class="log-body"><b>' + esc(l.actor) + "</b> 将状态从 <b>" + esc(l.from) + "</b> 改为 <b>" + esc(l.to) + '</b></span><span class="log-time">' + esc(l.time) + "</span></div>").join("")
+      : '<div class="log-item"><span class="log-body">还没有协同记录。推进状态后会记录在这里。</span></div>';
+
+    m.innerHTML =
+      '<div class="modal-head">'
+      + '<div><h2 class="modal-title">' + (isNew ? "新建任务" : esc(task.title)) + '</h2>'
+      + '<p class="modal-sub">' + (isNew ? "手动新建，也可以从收件箱或 Excel 导入" : srcBadge(task.source) + " · 负责人 " + esc(task.assignee)) + "</p></div>"
+      + '<button class="icon-btn" id="modalClose" aria-label="关闭">' + icon("close") + "</button></div>"
+      + '<div class="modal-body">'
+      + '<div class="field"><label>状态</label><div class="stepper" data-od-id="stepper">' + stepper + "</div></div>"
+      + '<div class="field" id="titleField"><label for="fTitle">任务标题</label><input id="fTitle" type="text" placeholder="例如：跟进客户报价" value="' + (task ? esc(task.title) : "") + '"><span class="error-msg hidden">请填写任务标题</span></div>'
+      + '<div class="field"><label for="fDesc">描述</label><textarea id="fDesc" placeholder="补充背景、链接或备注">' + (task ? esc(task.desc) : "") + "</textarea></div>"
+      + '<div class="field"><label for="fAssignee">负责人</label><select id="fAssignee">' + TEAM.map((mm) => '<option value="' + mm.name + '"' + (task && task.assignee === mm.name ? " selected" : "") + ">" + esc(mm.name) + "</option>").join("") + "</select></div>"
+      + '<div class="field"><label for="fDue">截止日期</label><input id="fDue" type="date" value="' + (task && /^\d{4}-\d{2}-\d{2}$/.test(task.due) ? esc(task.due) : "") + '"></div>'
+      + (task ? '<div class="field"><label>协同记录</label><div class="log" data-od-id="activity-log">' + logHtml + "</div></div>" : "")
+      + "</div>"
+      + '<div class="modal-foot">'
+      + (task ? '<button class="link" id="modalDelete" style="color:var(--danger)">删除任务</button>' : "<span></span>")
+      + '<div style="display:flex;gap:var(--space-2)"><button class="btn-secondary" id="modalCancel">取消</button><button class="btn-primary" id="modalSave">' + (isNew ? "创建任务" : "保存") + "</button></div>"
+      + "</div>";
+
+    $("#modalOverlay").classList.remove("hidden");
+    $("#taskModal").classList.remove("hidden");
+
+    m.querySelectorAll(".step").forEach((el) => {
+      el.addEventListener("click", () => {
+        if (!task) return;
+        const to = parseInt(el.dataset.step, 10);
+        if (to === task.status) return;
+        task.log.push({ actor: "我", from: statuses[task.status], to: statuses[to], time: nowTime() });
+        task.status = to;
+        renderTaskModal();
+      });
+    });
+    $("#modalClose").addEventListener("click", closeModal);
+    $("#modalCancel").addEventListener("click", closeModal);
+    if (task) $("#modalDelete").addEventListener("click", () => { tpl().tasks = tpl().tasks.filter((x) => x.id !== task.id); toast("任务已删除"); closeModal(); renderBoard(); });
+    $("#modalSave").addEventListener("click", () => {
+      const title = $("#fTitle").value.trim();
+      if (!title) { $("#titleField").classList.add("error"); $("#titleField .error-msg").classList.remove("hidden"); $("#fTitle").focus(); return; }
+      const due = $("#fDue").value || "今天";
+      if (isNew) {
+        tpl().tasks.unshift({ id: "m" + Date.now(), title: title, desc: $("#fDesc").value.trim(), source: "manual", assignee: $("#fAssignee").value, due: due, status: 0, log: [] });
+        toast("任务已创建");
+      } else {
+        task.title = title; task.desc = $("#fDesc").value.trim(); task.assignee = $("#fAssignee").value; task.due = due;
+        toast("已保存");
+      }
+      closeModal();
+      renderBoard(); renderMeta();
+    });
+  }
+
+  function openTask(id) { state.modalMode = "view"; state.modalTaskId = id; renderTaskModal(); }
+  function openNew() { state.modalMode = "create"; state.modalTaskId = null; renderTaskModal(); }
+  function closeModal() { $("#modalOverlay").classList.add("hidden"); $("#taskModal").classList.add("hidden"); $("#taskModal").innerHTML = ""; }
+
+  /* ── 导入 Excel ── */
+  const IMPORT_ROWS = [
+    ["维修 A 座 3 楼渗水", "王师傅", "2026-08-26"],
+    ["订购五金配件一批", "李姐", "2026-08-27"],
+    ["更新供应商价格表", "我", "2026-08-29"]
+  ];
+  function renderImportModal() {
+    $("#importModal").innerHTML =
+      '<div class="modal-head"><div><h2 class="modal-title">导入 Excel</h2><p class="modal-sub">从「本月杂事.xlsx」识别出以下任务</p></div>'
+      + '<button class="icon-btn" id="importClose" aria-label="关闭">' + icon("close") + "</button></div>"
+      + '<div class="modal-body">'
+      + '<table class="preview-table"><thead><tr><th>任务</th><th>负责人</th><th>截止</th></tr></thead><tbody>'
+      + IMPORT_ROWS.map((r) => "<tr><td>" + esc(r[0]) + "</td><td>" + esc(r[1]) + "</td><td>" + esc(fmtDue(r[2])) + "</td></tr>").join("")
+      + "</tbody></table>"
+      + '<p class="field-help">导入后会落到「' + esc(tpl().statuses[0]) + '」列，负责人和截止日期已自动识别。</p>'
+      + "</div>"
+      + '<div class="modal-foot"><span></span><div style="display:flex;gap:var(--space-2)"><button class="btn-secondary" id="importCancel">取消</button><button class="btn-primary" id="importConfirm">导入这 3 条</button></div></div>';
+    $("#importOverlay").classList.remove("hidden");
+    $("#importModal").classList.remove("hidden");
+    $("#importClose").addEventListener("click", closeImport);
+    $("#importCancel").addEventListener("click", closeImport);
+    $("#importConfirm").addEventListener("click", () => {
+      IMPORT_ROWS.forEach((r) => tpl().tasks.unshift({ id: "x" + Date.now() + r[0], title: r[0], desc: "由 Excel 导入。", source: "excel", assignee: r[1], due: r[2], status: 0, log: [] }));
+      toast("已导入 3 条任务");
+      closeImport(); renderBoard();
+    });
+  }
+  function closeImport() { $("#importOverlay").classList.add("hidden"); $("#importModal").classList.add("hidden"); $("#importModal").innerHTML = ""; }
+
+  /* ── toast ── */
+  let toastTimer = null;
+  function toast(msg) {
+    const el = $("#toast");
+    el.innerHTML = icon("check") + "<span>" + esc(msg) + "</span>";
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+  }
+
+  /* ── 事件绑定 ── */
+  function bindStatic() {
+    const btn = $("#templateBtn");
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const menu = $("#templateMenu");
+      menu.classList.toggle("hidden");
+      btn.setAttribute("aria-expanded", menu.classList.contains("hidden") ? "false" : "true");
+    });
+    document.addEventListener("click", (e) => {
+      const menu = $("#templateMenu");
+      if (!menu.classList.contains("hidden") && !e.target.closest(".template-switch")) { menu.classList.add("hidden"); $("#templateBtn").setAttribute("aria-expanded", "false"); }
+    });
+    $("#templateMenu").addEventListener("click", (e) => {
+      const item = e.target.closest(".menu-item");
+      if (!item) return;
+      state.templateId = item.dataset.tpl;
+      try { localStorage.setItem(LS_KEY, state.templateId); } catch (err) {}
+      $("#templateMenu").classList.add("hidden");
+      $("#templateBtn").setAttribute("aria-expanded", "false");
+      renderAll();
+    });
+
+    $("#searchInput").addEventListener("input", (e) => { state.query = e.target.value; renderBoard(); });
+
+    $("#filterChips").addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      state.filter = chip.dataset.filter;
+      $("#filterChips").querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      renderBoard();
+    });
+
+    $("#newBtn").addEventListener("click", openNew);
+    $("#importBtn").addEventListener("click", renderImportModal);
+
+    $("#inboxBtn").addEventListener("click", () => {
+      $("#inboxDrawer").classList.add("open");
+      $("#inboxOverlay").classList.remove("hidden");
+    });
+    function closeInbox() { $("#inboxDrawer").classList.remove("open"); $("#inboxOverlay").classList.add("hidden"); }
+    $("#inboxClose").addEventListener("click", closeInbox);
+    $("#inboxOverlay").addEventListener("click", closeInbox);
+    $("#inboxBody").addEventListener("click", (e) => {
+      const c = e.target.closest("[data-confirm]");
+      const ig = e.target.closest("[data-ignore]");
+      if (c) confirmDraft(c.dataset.confirm);
+      if (ig) ignoreDraft(ig.dataset.ignore);
+    });
+
+    $("#board").addEventListener("click", (e) => {
+      const adv = e.target.closest("[data-advance]");
+      if (adv) {
+        e.stopPropagation();
+        const task = findTask(adv.dataset.advance);
+        if (task && task.status < tpl().statuses.length - 1) {
+          task.log.push({ actor: "我", from: tpl().statuses[task.status], to: tpl().statuses[task.status + 1], time: nowTime() });
+          task.status += 1;
+          renderBoard();
+        }
+        return;
+      }
+      const card = e.target.closest(".card[data-id]");
+      if (card) openTask(card.dataset.id);
+    });
+
+    $("#modalOverlay").addEventListener("click", closeModal);
+    $("#importOverlay").addEventListener("click", closeImport);
+
+    const sw = $("#kwSwitch");
+    sw.addEventListener("click", () => {
+      const on = sw.getAttribute("aria-checked") !== "true";
+      sw.setAttribute("aria-checked", on ? "true" : "false");
+      toast(on ? "关键词自动收任务已开启" : "已暂停自动收任务");
+    });
+    sw.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); sw.click(); } });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { closeModal(); closeImport(); $("#inboxDrawer").classList.remove("open"); $("#inboxOverlay").classList.add("hidden"); }
+    });
+  }
+
+  function renderAll() { renderMeta(); renderMenu(); renderBoard(); renderInbox(); }
+
+  renderAll();
+  bindStatic();
+})();
+</script>
+</body>
+</html>

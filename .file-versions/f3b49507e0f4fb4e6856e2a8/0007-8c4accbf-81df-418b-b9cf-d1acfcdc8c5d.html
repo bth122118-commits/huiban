@@ -1,0 +1,1750 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>汇办 · 任务追踪台</title>
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+ * design-systems/default/tokens.css
+ *
+ * Structured token bindings for "Neutral Modern" — the canonical
+ * starter design system. This file is the *machine-readable* form of
+ * the values described in `DESIGN.md`. Agents are expected to paste
+ * the `:root { … }` block verbatim into the first `<style>` of every
+ * artifact they generate against this design system, then reference
+ * tokens via `var(--name)` from then on.
+ *
+ * Why this file exists:
+ *   DESIGN.md gives humans context ("Accent #2F6FEB — primary CTAs"),
+ *   but agents have to translate prose names like "Accent" into the
+ *   standard token names the lint enforces (`--accent`). That
+ *   translation is where token misuse happens. This file pre-translates
+ *   the brand once, so agents copy structure instead of inventing it.
+ *
+ * Contract sources:
+ *   - Standard token names: craft/color.md
+ *       (--bg / --surface / --fg / --muted / --border / --accent
+ *        / --success / --warn / --danger)
+ *   - Display-face contract: craft/anti-ai-slop.md
+ *       (--font-display, must be referenced via var())
+ *   - Lint enforcement: apps/daemon/src/lint-artifact.ts
+ *       (raw-hex >12 outside :root → P1; indigo laundering → P0)
+ *
+ * Schema notes (the shared schema grew from kami's stress test —
+ * see design-systems/kami/tokens.css for the rich form, and the
+ * #Gap N tags below for what each addition resolves):
+ *   #Gap 1  — 4-level foreground ramp (fg / fg-2 / muted / meta)
+ *   #Gap 2  — 3-level surface (bg / surface / surface-warm)
+ *   #Gap 3  — 2-level border (border / border-soft)
+ *   #Gap 4  — accent-hover binds to value, not formula
+ *   #Gap 5  — ring elevation as a first-class level (--elev-ring)
+ *
+ * Default doesn't differentiate every level kami needs, so the
+ * shallow tokens (`--fg-2`, `--meta`, `--surface-warm`, `--border-soft`)
+ * collapse to their richer siblings via `var()`. The names still
+ * exist so components can reference them uniformly across brands.
+ *
+ * Keep this file additive: never invent token names not also documented
+ * in DESIGN.md or the craft contracts. New brands cloning this template
+ * should overwrite values, not rename keys.
+ * ─────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ─── Surface (3 levels — #Gap 2) ─────────────────────────────────
+   * Per craft/color.md: never pure black, never pure white. Default
+   * uses #FAFAFA for bg and #FFFFFF for surface — the cream-to-white
+   * contrast gives cards lift without a shadow. `--surface-warm` is a
+   * schema slot for brands that need a tertiary tier (kami's warm-sand
+   * button bg); default has no third tier and aliases it to surface. */
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-warm: var(--surface);   /* alias — default has no warm tier */
+
+  /* ─── Foreground ramp (4 levels — #Gap 1) ───────────────────────
+   * Default differentiates only two text levels (primary + muted).
+   * `--fg-2` and `--meta` are schema slots for brands with richer
+   * ramps (kami uses near-black / dark-warm / olive / stone). They
+   * alias here so components targeting the full ramp resolve. */
+  --fg: #111111;
+  --fg-2: var(--fg);                /* alias — default has no secondary tier */
+  --muted: #6b6b6b;
+  --meta: var(--muted);             /* alias — default has no metadata tier */
+
+  /* ─── Border (2 levels — #Gap 3) ────────────────────────────────
+   * Default has one border weight; `--border-soft` is a schema slot
+   * for brands with row-separator vs card-edge differentiation. */
+  --border: #e5e5e5;
+  --border-soft: var(--border);     /* alias — default has no soft tier */
+
+  /* ─── Accent ──────────────────────────────────────────────────────
+   * Cobalt — primary CTAs, links, ONE hero element per screen.
+   * Hard cap of 2 visible uses per screen is enforced by lint
+   * (`accent-overuse` P1 fires at >6 inline occurrences). */
+  --accent: #2f6feb;
+  --accent-on: #ffffff; /* fg when accent is the bg (e.g. button label) */
+
+  /* ─── Accent states (#Gap 4) ────────────────────────────────────
+   * Hover and active variants for any element using --accent as bg.
+   * Default's mid-luminance cobalt admits a black-mix formula
+   * cleanly; that's a brand-specific binding, NOT a schema rule.
+   * kami binds --accent-hover to var(--accent) (no color shift,
+   * hover via elevation) because ink-blue is too dark for further
+   * darkening to read; other brands with light accents must
+   * hand-pick.
+   *
+   * Schema rule: every brand provides --accent-hover and
+   * --accent-active. The binding strategy (formula / identity /
+   * hand-picked) is brand-decided.
+   *
+   * Why these two are tokens (and other tints stay inline):
+   *   - cross-component (button, chip, tab, dropdown all need them)
+   *   - cross-mode reversal (dark-mode hover should mix white, not
+   *     black — token re-binding is one line per mode)
+   *   - cross-brand customization (formula breaks on light accents)
+   *   - lint-enforceable contract (every brand must provide these)
+   * Other inline `color-mix(...)` calls in components don't yet hit
+   * any of the above — promote them to tokens when a second use
+   * appears. */
+  --accent-hover: color-mix(in oklab, var(--accent), black 8%);
+  --accent-active: color-mix(in oklab, var(--accent), black 14%);
+
+  /* ─── Semantic ────────────────────────────────────────────────────
+   * Reserved for state, not decoration. Keep total semantic-color
+   * pixels under 5% of the surface. */
+  --success: #17a34a;
+  --warn: #eab308;
+  --danger: #dc2626;
+
+  /* ─── Typography ──────────────────────────────────────────────────
+   * Inter for display is the documented "modern minimal" override
+   * to anti-ai-slop's serif-display rule (see DESIGN.md
+   * §Visual Theme & Atmosphere — "Calm, functional, quietly
+   * confident"). Other brands should rebind --font-display to a
+   * serif unless their direction is also tech/utility. */
+  --font-display: "Inter", -apple-system, system-ui, sans-serif;
+  --font-body: "Inter", -apple-system, system-ui, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", monospace;
+
+  /* Type scale (px) — direct copy of DESIGN.md §Typography Rules */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+  --text-3xl: 48px;
+  --text-4xl: 64px;
+
+  --leading-body: 1.5;
+  --leading-tight: 1.2;
+  --tracking-display: -0.01em; /* applied to display sizes ≥32px */
+
+  /* ─── Spacing ─────────────────────────────────────────────────────
+   * 4px base unit. Section rhythm (80/48/32) lives below as named
+   * tokens because DESIGN.md §Layout Principles treats them as
+   * breakpoint-specific decisions, not generic spacing. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-20: 80px;
+
+  --section-y-desktop: 80px;
+  --section-y-tablet: 48px;
+  --section-y-phone: 32px;
+
+  /* ─── Radius ──────────────────────────────────────────────────────
+   * Two intents: small (button/input) and medium (card/modal).
+   * `--radius-pill` reserved for chips/avatars; do not use it on
+   * cards or buttons. */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  /* ─── Elevation (3 levels — #Gap 5) ─────────────────────────────
+   * Default uses two levels (flat + raised blur shadow) per its own
+   * DESIGN.md §Depth & Elevation. The schema gains `--elev-ring` as
+   * a first-class level so brands using ring shadows as primary
+   * elevation (kami, paper, editorial) don't need to rebind
+   * --elev-raised away from blur. Default declares all three; ring
+   * is available for hairline edges where a 1px border would shift
+   * layout. No fourth level — that's neumorphism territory. */
+  --elev-flat: none;
+  --elev-ring: 0 0 0 1px var(--border);
+  --elev-raised: 0 2px 8px color-mix(in oklab, var(--fg), transparent 92%);
+
+  /* ─── Focus ring ──────────────────────────────────────────────────
+   * Single source of truth for keyboard-focus indicators. Every
+   * `:focus-visible` rule on buttons, inputs, links, and tabs must
+   * use this token — uniform behavior is itself a brand signal, and
+   * craft/accessibility-baseline.md treats focus visibility as a
+   * non-negotiable. Implemented as a `box-shadow` so it layers
+   * outside the element without affecting layout. */
+  --focus-ring: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 70%);
+
+  /* ─── Motion ──────────────────────────────────────────────────────
+   * Two durations + one easing curve, per anti-ai-slop's "short,
+   * purposeful transitions (150–250ms) with stable easing". Add a
+   * third duration only when a real interaction needs it; do not
+   * invent `--motion-slow` speculatively. */
+  --motion-fast: 150ms;            /* hover, focus, micro-states */
+  --motion-base: 200ms;            /* general state changes */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ─── Layout ──────────────────────────────────────────────────────
+   * Container width and per-breakpoint gutter. Skill-side responsive
+   * code reads these to decide grid columns. */
+  --container-max: 1200px;
+  --container-gutter-desktop: 24px;
+  --container-gutter-tablet: 16px;
+  --container-gutter-phone: 12px;
+}
+
+/* ============ base ============ */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button { font-family: inherit; cursor: pointer; }
+input, textarea, select { font-family: inherit; }
+svg { display: block; }
+.hidden { display: none !important; }
+
+/* ============ buttons ============ */
+.btn-primary, .btn-secondary, .icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  min-height: 44px; padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm); font-weight: 500;
+  border: 1px solid transparent;
+  transition: background var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
+}
+.btn-primary { background: var(--accent); color: var(--accent-on); }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:active { background: var(--accent-active); }
+.btn-secondary { background: transparent; color: var(--fg); border-color: var(--border); }
+.btn-secondary:hover { border-color: var(--muted); }
+.btn-sm { min-height: 36px; padding: 6px 12px; font-size: var(--text-xs); }
+.btn-primary:focus-visible, .btn-secondary:focus-visible, .icon-btn:focus-visible,
+.chip:focus-visible, .menu-item:focus-visible, .card:focus-visible, .step:focus-visible,
+.link:focus-visible, .select-btn:focus-visible, .switch:focus-visible, .advance:focus-visible,
+.seg-btn:focus-visible, .mini-btn:focus-visible, .sortable:focus-visible {
+  outline: none; box-shadow: var(--focus-ring);
+}
+.icon-btn {
+  min-height: 44px; min-width: 44px; padding: 0;
+  background: transparent; color: var(--fg); border-color: transparent;
+  position: relative;
+}
+.icon-btn:hover { background: color-mix(in oklab, var(--fg), transparent 94%); }
+.icon-btn svg { width: 20px; height: 20px; }
+.link { color: var(--accent); background: none; border: none; padding: 0; font-size: var(--text-sm); }
+.link:hover { text-decoration: underline; }
+
+/* ============ topbar ============ */
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  height: 64px; padding: 0 var(--space-6);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: var(--space-3); }
+.logo {
+  width: 30px; height: 30px; border-radius: var(--radius-sm);
+  background: var(--accent); color: var(--accent-on);
+  display: grid; place-items: center;
+}
+.logo svg { width: 16px; height: 16px; }
+.brand-name { font-family: var(--font-display); font-weight: 600; font-size: var(--text-base); letter-spacing: -0.01em; }
+.template-switch { position: relative; margin-left: var(--space-2); }
+.select-btn {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  height: 44px; padding: 0 var(--space-4);
+  background: var(--surface); color: var(--fg);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: var(--text-sm); font-weight: 500;
+}
+.select-btn:hover { border-color: var(--muted); }
+.select-btn svg { width: 16px; height: 16px; color: var(--muted); }
+.menu {
+  position: absolute; top: calc(100% + 6px); left: 0; min-width: 260px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  box-shadow: var(--elev-raised); padding: var(--space-2); z-index: 50;
+  max-height: 70vh; overflow-y: auto;
+}
+.menu-section {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em;
+  color: var(--muted); text-transform: uppercase; padding: var(--space-2) var(--space-3) var(--space-1);
+}
+.menu-row { display: flex; align-items: stretch; }
+.menu-item {
+  display: flex; flex-direction: column; gap: 2px; flex: 1;
+  width: auto; text-align: left; padding: var(--space-3);
+  background: transparent; border: none; border-radius: var(--radius-sm);
+}
+.menu-item:hover { background: color-mix(in oklab, var(--fg), transparent 95%); }
+.menu-item.active { background: color-mix(in oklab, var(--accent), transparent 92%); }
+.menu-item .mi-name { font-size: var(--text-sm); font-weight: 500; color: var(--fg); }
+.menu-item .mi-sub { font-size: var(--text-xs); color: var(--muted); }
+.menu-item.active .mi-name { color: var(--accent); }
+.mi-custom { font-size: 11px; font-weight: 500; color: var(--accent); border: 1px solid color-mix(in oklab, var(--accent), transparent 70%); border-radius: var(--radius-pill); padding: 1px 7px; margin-left: 4px; }
+.mi-del {
+  flex: none; width: 36px; border: none; background: transparent; color: var(--muted);
+  border-radius: var(--radius-sm); font-size: var(--text-base);
+}
+.mi-del:hover { color: var(--danger); background: color-mix(in oklab, var(--danger), transparent 92%); }
+.menu-add { padding: var(--space-2) var(--space-1) var(--space-1); border-top: 1px solid var(--border-soft); margin-top: var(--space-1); }
+
+.topbar-actions { display: flex; align-items: center; gap: var(--space-2); }
+.search {
+  display: flex; align-items: center; gap: var(--space-2);
+  height: 44px; padding: 0 var(--space-3);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--muted);
+}
+.search:focus-within { border-color: var(--accent); box-shadow: var(--focus-ring); }
+.search svg { width: 18px; height: 18px; }
+.search input { border: none; outline: none; background: transparent; color: var(--fg); font-size: var(--text-sm); width: 160px; }
+.search input::placeholder { color: var(--muted); }
+.badge-count {
+  position: absolute; top: 4px; right: 4px;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--danger); color: var(--accent-on);
+  font-size: 11px; font-weight: 600; line-height: 18px; text-align: center;
+}
+
+/* ============ meta bar ============ */
+.meta-bar {
+  max-width: var(--container-max); margin: 0 auto;
+  padding: var(--space-6) var(--space-6) 0;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-6);
+  flex-wrap: wrap;
+}
+.eyebrow { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.04em; color: var(--muted); text-transform: uppercase; margin: 0 0 var(--space-2); }
+.meta-title { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: var(--text-xl); letter-spacing: -0.01em; line-height: var(--leading-tight); }
+.meta-desc { margin: var(--space-2) 0 0; color: var(--muted); font-size: var(--text-sm); max-width: 560px; }
+.meta-right { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2); }
+.kw-row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
+.kw-label { font-size: var(--text-xs); color: var(--muted); white-space: nowrap; }
+.keyword-chips { display: flex; gap: var(--space-1); flex-wrap: wrap; }
+.kw {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  padding: 2px 8px; border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--accent), transparent 92%);
+  color: var(--accent); border: 1px solid color-mix(in oklab, var(--accent), transparent 78%);
+}
+.kw.reply {
+  background: color-mix(in oklab, var(--warn), transparent 88%);
+  color: color-mix(in oklab, var(--warn), black 38%);
+  border-color: color-mix(in oklab, var(--warn), transparent 70%);
+}
+.kw-empty { font-size: var(--text-xs); color: var(--muted); }
+.switch-row { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--muted); }
+.switch {
+  position: relative; width: 36px; height: 20px; border-radius: var(--radius-pill);
+  background: var(--border); cursor: pointer; transition: background var(--motion-fast) var(--ease-standard);
+  flex: none; display: inline-block;
+}
+.switch[aria-checked="true"] { background: var(--accent); }
+.switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%; background: var(--surface);
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+.switch[aria-checked="true"]::after { transform: translateX(16px); }
+
+/* ============ filter bar ============ */
+.filter-bar {
+  max-width: var(--container-max); margin: 0 auto;
+  padding: var(--space-4) var(--space-6) 0;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.filter-left { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.seg { display: inline-flex; padding: 3px; gap: 2px; background: color-mix(in oklab, var(--fg), transparent 94%); border-radius: var(--radius-sm); }
+.seg-btn {
+  height: 38px; padding: 0 var(--space-4); border: none; border-radius: var(--radius-sm);
+  background: transparent; color: var(--muted); font-size: var(--text-sm); font-weight: 500;
+}
+.seg-btn.active { background: var(--surface); color: var(--fg); box-shadow: var(--elev-raised); }
+.filter-chips { display: flex; gap: var(--space-2); }
+.filter-group { display: flex; align-items: center; gap: var(--space-2); }
+.filter-label { font-size: var(--text-xs); color: var(--muted); white-space: nowrap; }
+.chip {
+  height: 44px; padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--border); font-size: var(--text-sm); font-weight: 500;
+}
+.chip:hover { color: var(--fg); border-color: var(--muted); }
+.chip.active { background: var(--fg); color: var(--surface); border-color: var(--fg); }
+.count-label { font-size: var(--text-xs); color: var(--muted); font-family: var(--font-mono); }
+
+/* ============ board ============ */
+.board {
+  max-width: var(--container-max); margin: 0 auto;
+  padding: var(--space-4) var(--space-6) var(--space-12);
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(224px, 1fr);
+  gap: var(--space-4); align-items: start; overflow-x: auto;
+}
+.column { display: flex; flex-direction: column; gap: var(--space-3); }
+.col-head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.terminal { background: var(--success); }
+.col-name { font-weight: 600; font-size: var(--text-sm); }
+.col-count {
+  font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted);
+  margin-left: auto; padding: 1px 8px; border-radius: var(--radius-pill); background: color-mix(in oklab, var(--fg), transparent 93%);
+}
+.col-empty {
+  border: 1px dashed var(--border); border-radius: var(--radius-md);
+  padding: var(--space-6) var(--space-4); text-align: center;
+  color: var(--muted); font-size: var(--text-xs);
+}
+.card {
+  position: relative;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: var(--space-4); text-align: left; width: 100%;
+  transition: box-shadow var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard);
+}
+.card:hover { box-shadow: var(--elev-raised); border-color: color-mix(in oklab, var(--accent), transparent 60%); }
+.card-title { display: block; font-size: var(--text-sm); font-weight: 600; color: var(--fg); line-height: var(--leading-tight); margin: 0; }
+.card-desc { font-size: var(--text-xs); color: var(--muted); margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-meta { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.src-badge {
+  font-family: var(--font-mono); font-size: 11px; line-height: 1;
+  padding: 3px 7px; border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--fg), transparent 93%); color: var(--muted);
+  border: 1px solid var(--border-soft);
+}
+.src-badge.mail { color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 92%); border-color: color-mix(in oklab, var(--accent), transparent 78%); }
+.src-badge.excel { color: var(--success); background: color-mix(in oklab, var(--success), transparent 92%); border-color: color-mix(in oklab, var(--success), transparent 78%); }
+.pri-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono); font-size: 11px; line-height: 1; font-weight: 500;
+  padding: 3px 7px; border-radius: var(--radius-pill);
+}
+.pri-badge .pri-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.pri-urgent { background: color-mix(in oklab, var(--danger), transparent 90%); color: var(--danger); border: 1px solid color-mix(in oklab, var(--danger), transparent 70%); }
+.pri-urgent .pri-dot { background: var(--danger); }
+.pri-high { background: color-mix(in oklab, var(--warn), transparent 88%); color: color-mix(in oklab, var(--warn), black 38%); border: 1px solid color-mix(in oklab, var(--warn), transparent 70%); }
+.pri-high .pri-dot { background: var(--warn); }
+.pri-normal { background: color-mix(in oklab, var(--fg), transparent 93%); color: var(--muted); border: 1px solid var(--border-soft); }
+.pri-normal .pri-dot { background: var(--muted); }
+.ribbon {
+  position: absolute; top: 0; right: 0; width: 52px; height: 52px; overflow: hidden;
+  border-top-right-radius: var(--radius-md); pointer-events: none;
+}
+.ribbon span {
+  position: absolute; top: 9px; right: -20px; transform: rotate(45deg);
+  display: block; width: 76px; padding: 3px 0;
+  background: var(--danger); color: var(--accent-on);
+  text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; line-height: 1.3;
+}
+.card-footer { display: flex; align-items: center; gap: var(--space-2); margin-top: auto; }
+.avatar {
+  width: 26px; height: 26px; border-radius: 50%; flex: none;
+  display: grid; place-items: center; font-size: var(--text-xs); font-weight: 600;
+  background: color-mix(in oklab, var(--fg), transparent 90%); color: var(--fg);
+  border: 1px solid var(--border);
+}
+.avatar.self { background: var(--accent); color: var(--accent-on); border-color: var(--accent); }
+.holder-name { font-size: var(--text-xs); font-weight: 600; color: var(--fg); }
+.pub { font-size: var(--text-xs); color: var(--muted); }
+.due { font-size: var(--text-xs); color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
+.due svg { width: 13px; height: 13px; }
+.advance {
+  margin-left: auto; width: 36px; height: 36px; flex: none;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: transparent; color: var(--muted);
+  display: grid; place-items: center;
+}
+.advance:hover { color: var(--accent); border-color: var(--accent); }
+.advance svg { width: 16px; height: 16px; }
+.advance.done { color: var(--success); border-color: var(--success); cursor: default; }
+
+/* ============ table view ============ */
+.table-wrap { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); overflow-x: auto; }
+.task-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); min-width: 1000px; }
+.task-table th {
+  text-align: left; padding: var(--space-3) var(--space-4);
+  font-size: var(--text-xs); font-weight: 500; color: var(--muted);
+  border-bottom: 1px solid var(--border); white-space: nowrap; font-family: var(--font-mono);
+}
+.task-table th.sortable { cursor: pointer; user-select: none; }
+.task-table th.sortable:hover { color: var(--fg); }
+.task-table th .sort-ind { color: var(--accent); }
+.task-table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
+.task-table tbody tr { cursor: pointer; transition: background var(--motion-fast) var(--ease-standard); }
+.task-table tbody tr:hover { background: color-mix(in oklab, var(--fg), transparent 96%); }
+.task-table tbody tr:last-child td { border-bottom: none; }
+.table-title { display: block; font-weight: 600; color: var(--fg); }
+.table-desc { display: block; font-size: var(--text-xs); color: var(--muted); margin-top: 2px; max-width: 380px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.new-pill {
+  display: inline-block; background: var(--danger); color: var(--accent-on);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.05em; line-height: 1;
+  padding: 2px 6px; border-radius: var(--radius-pill); vertical-align: 2px; margin-right: 6px;
+}
+.td-assignee { display: flex; align-items: center; gap: var(--space-2); }
+.td-name { font-size: var(--text-xs); color: var(--fg); white-space: nowrap; }
+.td-pub { font-size: var(--text-xs); color: var(--muted); white-space: nowrap; }
+.td-cat { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted); white-space: nowrap; }
+.td-due { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted); white-space: nowrap; }
+.status-select {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 6px 8px; font-size: var(--text-xs); color: var(--fg); background: var(--surface);
+  max-width: 160px;
+}
+.status-select:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+.table-empty { text-align: center; color: var(--muted); padding: var(--space-12) var(--space-4) !important; }
+
+/* ============ drawer ============ */
+.overlay { position: fixed; inset: 0; background: color-mix(in oklab, var(--fg), transparent 60%); z-index: 60; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 420px; max-width: 92vw;
+  background: var(--surface); border-left: 1px solid var(--border); z-index: 70;
+  display: flex; flex-direction: column;
+  box-shadow: var(--elev-raised);
+  transform: translateX(100%); transition: transform var(--motion-base) var(--ease-standard);
+}
+.drawer.open { transform: translateX(0); }
+.drawer-head { display: flex; align-items: center; justify-content: space-between; padding: var(--space-5) var(--space-5) var(--space-4); border-bottom: 1px solid var(--border); }
+.drawer-title { font-family: var(--font-display); font-weight: 600; font-size: var(--text-base); margin: 0; }
+.drawer-sub { font-size: var(--text-xs); color: var(--muted); margin: var(--space-1) 0 0; }
+.drawer-body { flex: 1; overflow-y: auto; padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+.inbox-section { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em; color: var(--muted); text-transform: uppercase; padding: var(--space-2) 0 var(--space-1); }
+.inbox-empty { font-size: var(--text-xs); color: var(--muted); padding: var(--space-2) 0 var(--space-3); margin: 0; }
+.draft { border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); background: var(--surface); }
+.draft.from { font-size: var(--text-xs); color: var(--muted); }
+.draft.subject { font-size: var(--text-sm); font-weight: 600; margin: 0; }
+.draft.snippet { font-size: var(--text-xs); color: var(--muted); margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.draft-route { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); flex-wrap: wrap; }
+.draft-actions { display: flex; gap: var(--space-2); }
+.draft-actions .btn-secondary, .draft-actions .btn-primary { min-height: 40px; padding: 8px 14px; font-size: var(--text-xs); }
+.reply-target { font-size: var(--text-xs); color: var(--muted); }
+
+/* ============ modal ============ */
+.modal-overlay { position: fixed; inset: 0; background: color-mix(in oklab, var(--fg), transparent 60%); z-index: 80; }
+.modal {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 90;
+  width: 560px; max-width: calc(100vw - 32px); max-height: 90vh; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--elev-raised);
+}
+.modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); padding: var(--space-5) var(--space-5) var(--space-4); border-bottom: 1px solid var(--border); }
+.modal-title { font-family: var(--font-display); font-weight: 600; font-size: var(--text-lg); margin: 0; }
+.modal-sub { font-size: var(--text-xs); color: var(--muted); margin: var(--space-1) 0 0; }
+.modal-body { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5); }
+.modal-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-top: 1px solid var(--border); }
+.modal-foot .btn-primary, .modal-foot .btn-secondary { min-height: 44px; }
+
+.field { display: flex; flex-direction: column; gap: var(--space-2); }
+.field label { font-size: var(--text-xs); font-weight: 500; color: var(--fg); }
+.field input, .field textarea, .field select {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px 12px; font-size: var(--text-sm); color: var(--fg); background: var(--surface);
+  width: 100%;
+}
+.field input:focus-visible, .field textarea:focus-visible, .field select:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+.field textarea { resize: vertical; min-height: 80px; }
+.field input::placeholder, .field textarea::placeholder { color: var(--muted); }
+.field-help { font-size: var(--text-xs); color: var(--muted); }
+.field.error input { border-color: var(--danger); }
+.field .error-msg { font-size: var(--text-xs); color: var(--danger); }
+.field-row { display: flex; gap: var(--space-3); }
+.field-row .field { flex: 1; }
+.derived { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
+.derived b { font-weight: 600; color: var(--fg); }
+.derived .field-help { margin: 0; }
+
+/* stepper */
+.stepper { display: flex; align-items: center; gap: var(--space-1); overflow-x: auto; padding: var(--space-1) 0; }
+.step {
+  display: flex; align-items: center; gap: var(--space-2); flex: none;
+  padding: 8px 12px; min-height: 44px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: var(--text-xs); font-weight: 500;
+}
+.step .step-idx { width: 20px; height: 20px; border-radius: 50%; background: var(--border); color: var(--fg); display: grid; place-items: center; font-size: 11px; font-family: var(--font-mono); flex: none; }
+.step.current { border-color: var(--accent); color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 93%); }
+.step.current .step-idx { background: var(--accent); color: var(--accent-on); }
+.step.done { border-color: color-mix(in oklab, var(--success), transparent 60%); color: var(--success); }
+.step.done .step-idx { background: var(--success); color: var(--accent-on); }
+.step:hover:not(.current):not(.done) { border-color: var(--muted); color: var(--fg); }
+.step-connector { width: 16px; height: 1px; background: var(--border); flex: none; }
+
+/* activity log */
+.log { display: flex; flex-direction: column; gap: var(--space-2); }
+.log-item { display: flex; align-items: flex-start; gap: var(--space-3); font-size: var(--text-xs); }
+.log-avatar { width: 22px; height: 22px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 10px; font-weight: 600; background: color-mix(in oklab, var(--fg), transparent 90%); color: var(--fg); }
+.log-body { color: var(--muted); line-height: 1.5; }
+.log-body b { color: var(--fg); font-weight: 600; }
+.log-note { color: var(--accent); }
+.log-time { color: var(--meta); font-family: var(--font-mono); font-size: 11px; }
+
+/* ============ template editor ============ */
+.status-editor { display: flex; flex-direction: column; gap: var(--space-2); }
+.status-row { display: flex; align-items: center; gap: var(--space-2); }
+.status-row input { flex: 1; min-width: 0; }
+.mini-btn {
+  width: 32px; height: 32px; flex: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: transparent; color: var(--muted); font-size: var(--text-sm); display: grid; place-items: center;
+}
+.mini-btn:hover { border-color: var(--muted); color: var(--fg); }
+.mini-btn:disabled { opacity: 0.35; cursor: default; }
+.mini-btn.danger:hover { color: var(--danger); border-color: var(--danger); }
+.matrix-wrap { border: 1px solid var(--border); border-radius: var(--radius-md); overflow-x: auto; }
+.matrix-table { border-collapse: collapse; width: 100%; font-size: var(--text-xs); min-width: 640px; }
+.matrix-table th, .matrix-table td { padding: var(--space-2); border-bottom: 1px solid var(--border-soft); text-align: left; vertical-align: middle; }
+.matrix-table th { color: var(--muted); font-weight: 500; font-family: var(--font-mono); font-size: 11px; white-space: nowrap; }
+.matrix-cat input { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 8px; font-size: var(--text-xs); color: var(--fg); background: var(--surface); width: 90px; }
+.matrix-select { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 6px; font-size: var(--text-xs); color: var(--fg); background: var(--surface); min-width: 86px; }
+.matrix-cat input:focus-visible, .matrix-select:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+.kw-editor { display: flex; flex-direction: column; gap: var(--space-2); }
+.kw-list { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.kw-tag {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-family: var(--font-mono); font-size: var(--text-xs); padding: 4px 10px;
+  border-radius: var(--radius-pill); background: color-mix(in oklab, var(--accent), transparent 92%);
+  color: var(--accent); border: 1px solid color-mix(in oklab, var(--accent), transparent 78%);
+}
+.kw-tag.reply {
+  background: color-mix(in oklab, var(--warn), transparent 88%);
+  color: color-mix(in oklab, var(--warn), black 38%);
+  border-color: color-mix(in oklab, var(--warn), transparent 70%);
+}
+.kw-tag .kw-remove { border: none; background: transparent; color: inherit; cursor: pointer; font-size: var(--text-sm); line-height: 1; padding: 0; }
+.kw-editor > input { width: 100%; }
+.kw-empty { font-size: var(--text-xs); color: var(--muted); }
+
+/* import table */
+.preview-table { width: 100%; border-collapse: collapse; font-size: var(--text-xs); }
+.preview-table th, .preview-table td { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-soft); }
+.preview-table th { color: var(--muted); font-weight: 500; font-family: var(--font-mono); font-size: 11px; }
+.preview-table td { color: var(--fg); }
+
+/* toast */
+.toast {
+  position: fixed; bottom: var(--space-6); left: 50%; transform: translateX(-50%);
+  background: var(--fg); color: var(--surface);
+  padding: 10px 16px; border-radius: var(--radius-sm); font-size: var(--text-sm);
+  box-shadow: var(--elev-raised); z-index: 100; display: flex; align-items: center; gap: var(--space-2);
+  opacity: 0; transition: opacity var(--motion-base) var(--ease-standard); pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.toast svg { width: 16px; height: 16px; color: var(--success); }
+
+/* ============ responsive ============ */
+@media (max-width: 920px) {
+  .search input { width: 96px; }
+  .meta-bar { padding-top: var(--space-5); }
+  .meta-right { align-items: flex-start; width: 100%; }
+  .kw-row { justify-content: flex-start; }
+}
+@media (max-width: 720px) {
+  .topbar { padding: 0 var(--space-4); }
+  .topbar-actions { gap: var(--space-1); }
+  .search { display: none; }
+  .btn-secondary .btn-label { display: none; }
+  .btn-secondary { padding: 0 14px; }
+  .meta-bar, .filter-bar, .board { padding-left: var(--space-4); padding-right: var(--space-4); }
+  .board { grid-auto-flow: row; grid-auto-columns: 1fr; }
+  .brand-name { display: none; }
+  .select-btn { padding: 0 12px; }
+  .field-row { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+  <header class="topbar" data-od-id="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </span>
+      <span class="brand-name" id="brandName">汇办</span>
+      <div class="template-switch">
+        <button class="select-btn" id="templateBtn" aria-haspopup="true" aria-expanded="false" data-od-id="template-selector">
+          <span id="templateBtnLabel">通用待办</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="menu hidden" id="templateMenu" role="menu"></div>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input type="text" id="searchInput" placeholder="搜索任务…" aria-label="搜索任务">
+      </label>
+      <button class="icon-btn" id="inboxBtn" aria-label="收件箱">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7.5l9 6 9-6"/></svg>
+        <span class="badge-count hidden" id="inboxBadge">0</span>
+      </button>
+      <button class="btn-secondary" id="importBtn" data-od-id="import-button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        <span class="btn-label" id="importLabel">导入</span>
+      </button>
+      <button class="btn-primary" id="newBtn" data-od-id="new-task-button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span id="newBtnLabel">新建任务</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="meta-bar" data-od-id="template-meta">
+    <div>
+      <p class="eyebrow" id="templateEyebrow">当前模板</p>
+      <h1 class="meta-title" id="templateTitle">通用待办</h1>
+      <p class="meta-desc" id="templateDesc"></p>
+    </div>
+    <div class="meta-right">
+      <div class="kw-row">
+        <span class="kw-label" id="kwLabelCreate">接受关键词</span>
+        <div class="keyword-chips" id="keywordChips"></div>
+      </div>
+      <div class="kw-row">
+        <span class="kw-label" id="kwLabelReply">回复关键词</span>
+        <div class="keyword-chips" id="replyChips"></div>
+        <button class="btn-secondary btn-sm" id="editTemplateBtn" data-od-id="edit-template-button">编辑模板</button>
+      </div>
+      <div class="switch-row">
+        <span id="kwSwitchText">接受关键词：邮件自动建立任务 · 回复关键词：回复自动更新状态</span>
+        <span class="switch" id="kwSwitch" role="switch" aria-checked="true" tabindex="0"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="filter-bar" data-od-id="filter-bar">
+    <div class="filter-left">
+      <div class="seg" id="viewToggle" data-od-id="view-toggle">
+        <button class="seg-btn active" data-view="board">看板</button>
+        <button class="seg-btn" data-view="table">表格</button>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label" id="filterLabelSource">来源</span>
+        <div class="filter-chips" id="filterChips">
+          <button class="chip active" data-filter="all">全部</button>
+          <button class="chip" data-filter="mail">邮件</button>
+          <button class="chip" data-filter="excel">Excel</button>
+          <button class="chip" data-filter="manual">手动</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label" id="filterLabelType">类型</span>
+        <div class="filter-chips" id="catFilterChips"></div>
+      </div>
+    </div>
+    <span class="count-label" id="countLabel"></span>
+  </section>
+
+  <main class="board" id="board" data-od-id="board" aria-label="任务视图"></main>
+
+  <!-- inbox drawer -->
+  <div class="overlay hidden" id="inboxOverlay"></div>
+  <aside class="drawer" id="inboxDrawer" aria-label="收件箱" data-od-id="inbox-drawer">
+    <div class="drawer-head">
+      <div>
+        <h2 class="drawer-title" id="drawerTitle">收件箱</h2>
+        <p class="drawer-sub" id="drawerSub">接受关键词 → 自动建立任务 · 回复关键词 → 自动更新状态</p>
+      </div>
+      <button class="icon-btn" id="inboxClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="inboxBody"></div>
+  </aside>
+
+  <!-- task modal -->
+  <div class="modal-overlay hidden" id="modalOverlay"></div>
+  <div class="modal" id="taskModal" role="dialog" aria-modal="true" aria-label="任务详情" data-od-id="task-modal"></div>
+
+  <!-- template editor modal -->
+  <div class="modal-overlay hidden" id="templateOverlay"></div>
+  <div class="modal" id="templateModal" role="dialog" aria-modal="true" aria-label="编辑模板" data-od-id="template-editor"></div>
+
+  <!-- import modal -->
+  <div class="modal-overlay hidden" id="importOverlay"></div>
+  <div class="modal" id="importModal" role="dialog" aria-modal="true" aria-label="导入 Excel" data-od-id="import-modal"></div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  const TEAM = [
+    { name: "我", en: "Me", initial: "我", enInitial: "M", self: true },
+    { name: "陈工", en: "Chen", initial: "陈", enInitial: "C", self: false },
+    { name: "李姐", en: "Li", initial: "李", enInitial: "L", self: false },
+    { name: "王师傅", en: "Wang", initial: "王", enInitial: "W", self: false }
+  ];
+
+  const PRIORITY = { urgent: { rank: 0 }, high: { rank: 1 }, normal: { rank: 2 } };
+
+  /* ── 界面文案词典 ── */
+  const I18N = {
+    zh: {
+      brand: "汇办", search: "搜索任务…", inbox: "收件箱", import: "导入", newTask: "新建任务",
+      currentTemplate: "当前模板", acceptKw: "接受关键词", replyKw: "回复关键词", editTemplate: "编辑模板",
+      kwSwitch: "接受关键词：邮件自动建立任务 · 回复关键词：回复自动更新状态", none: "（无）",
+      board: "看板", table: "表格", source: "来源", type: "类型", all: "全部", mail: "邮件", excel: "Excel", manual: "手动",
+      tasksCount: "项任务", statusesCount: "个状态", noTasks: "暂无任务", advance: "推进到下一状态", done: "已完成",
+      colTask: "任务", colPriority: "重要性", colPublisher: "发布者", colHandler: "处理者", colStatus: "状态", colDue: "截止",
+      noMatch: "没有匹配的任务",
+      drawerSub: "接受关键词 → 自动建立任务 · 回复关键词 → 自动更新状态",
+      secAccept: "接受关键词 · 自动建立任务", secReply: "回复关键词 · 自动更新状态",
+      noEmails: "没有待确认的邮件", noReplies: "没有识别到回复邮件",
+      suggestedStatus: "建议状态", ignore: "忽略", confirm: "确认入板", updateTask: "更新任务", apply: "应用更新",
+      newTaskTitle: "新建任务", taskTitle: "任务标题", desc: "描述", publisher: "发布者", typeField: "类型",
+      handler: "处理者", handlerAuto: "处理者（自动）", handlerAutoHelp: "由「类型 × 状态」自动决定，可在「编辑模板」里改",
+      priority: "重要性", dueDate: "截止日期", activity: "协同记录", noLog: "还没有协同记录。推进状态后会记录在这里。",
+      deleteTask: "删除任务", cancel: "取消", create: "创建任务", save: "保存",
+      statusLabel: "状态（转移后处理者自动切换）", titleRequired: "请填写任务标题",
+      titlePh: "例如：跟进客户报价", descPh: "补充背景、链接或备注", newSub: "手动新建，也可以从收件箱或 Excel 导入",
+      pubShort: "发布", pubSep: " · 发布 ", movedFrom: "将状态从", toWord: "改为",
+      urgent: "紧急", high: "重要", normal: "普通",
+      editTemplateSub: "状态、类型、处理者矩阵、以及两类关键词都在这里设置",
+      templateName: "模板名称", statusPipeline: "状态流水线", addStatus: "+ 添加状态",
+      matrixTitle: "类型与处理者矩阵", addType: "+ 添加类型",
+      matrixHelp: "不同「类型」的任务，在各状态由谁处理；任务转移状态时自动切换。",
+      acceptKwLabel: "接受关键词（邮件自动建立任务）", replyKwLabel: "回复关键词（回复邮件自动更新状态）",
+      kwPh: "输入关键词，回车添加", replyKwPh: "输入回复关键词，回车添加", saveTemplate: "保存模板",
+      noAcceptKw: "还没有接受关键词", noReplyKw: "还没有回复关键词", newStatus: "新状态", newType: "新类型",
+      importExcel: "导入 Excel", importSub: "从「本月杂事.xlsx」识别出以下任务",
+      importHelp1: "导入后会落到「", importHelp2: "」列，发布者默认为你。", importN: "导入这 3 条", importDesc: "由 Excel 导入。",
+      toastAccepted: "已按接受关键词「", toastAdded: "」入板：", toastIgnored: "已忽略该邮件",
+      toastAuto: "已自动更新「", toastArrow: "」→ ", toastReplyIgnored: "已忽略该回复",
+      toastCreated: "任务已创建", toastSaved: "已保存", toastDeleted: "任务已删除", toastImported: "已导入 3 条任务",
+      toastTemplateSaved: "模板已更新", toastTemplateDeleted: "模板已删除",
+      toastKwOn: "关键词自动收任务已开启", toastKwOff: "已暂停自动收任务",
+      toastNameRequired: "请填写模板名称", toastStatusRequired: "至少需要 2 个状态",
+      today: "今天", noteReply: "回复邮件「", noteReplyClose: "」", by: "by ", custom: "自定义", presets: "预设模板", customTpl: "自定义模板",
+      newTemplate: "+ 新建自定义模板", statusesOfType: "个状态", typesCount: "种类型"
+    },
+    en: {
+      brand: "Huiban", search: "Search tasks…", inbox: "Inbox", import: "Import", newTask: "New task",
+      currentTemplate: "Current template", acceptKw: "Accept keywords", replyKw: "Reply keywords", editTemplate: "Edit template",
+      kwSwitch: "Accept keywords: emails auto-create tasks · Reply keywords: replies auto-update status", none: "(none)",
+      board: "Board", table: "Table", source: "Source", type: "Type", all: "All", mail: "Email", excel: "Excel", manual: "Manual",
+      tasksCount: "tasks", statusesCount: "statuses", noTasks: "No tasks", advance: "Advance", done: "Done",
+      colTask: "Task", colPriority: "Priority", colPublisher: "Publisher", colHandler: "Handler", colStatus: "Status", colDue: "Due",
+      noMatch: "No matching tasks",
+      drawerSub: "Accept keywords → auto-create tasks · Reply keywords → auto-update status",
+      secAccept: "Accept keywords · auto-create tasks", secReply: "Reply keywords · auto-update status",
+      noEmails: "No emails to confirm", noReplies: "No replies detected",
+      suggestedStatus: "Suggested status", ignore: "Ignore", confirm: "Confirm", updateTask: "Update task", apply: "Apply",
+      newTaskTitle: "New task", taskTitle: "Title", desc: "Description", publisher: "Publisher", typeField: "Type",
+      handler: "Handler", handlerAuto: "Handler (auto)", handlerAutoHelp: "Derived from Type × Status — edit in the template",
+      priority: "Priority", dueDate: "Due date", activity: "Activity", noLog: "No activity yet. Advancing the status records it here.",
+      deleteTask: "Delete task", cancel: "Cancel", create: "Create task", save: "Save",
+      statusLabel: "Status (handler auto-switches on move)", titleRequired: "Please enter a title",
+      titlePh: "e.g. Follow up on client quote", descPh: "Add background, links or notes", newSub: "Created manually, or from inbox / Excel",
+      pubShort: "by", pubSep: " · by ", movedFrom: "moved from", toWord: "to",
+      urgent: "Urgent", high: "High", normal: "Normal",
+      editTemplateSub: "Statuses, types, the handler matrix, and both keyword sets live here",
+      templateName: "Template name", statusPipeline: "Status pipeline", addStatus: "+ Add status",
+      matrixTitle: "Type & handler matrix", addType: "+ Add type",
+      matrixHelp: "Who handles each status for each task type; the handler auto-switches on status change.",
+      acceptKwLabel: "Accept keywords (emails auto-create tasks)", replyKwLabel: "Reply keywords (replies auto-update status)",
+      kwPh: "Type a keyword, press Enter", replyKwPh: "Type a reply keyword, press Enter", saveTemplate: "Save template",
+      noAcceptKw: "No accept keywords yet", noReplyKw: "No reply keywords yet", newStatus: "New status", newType: "New type",
+      importExcel: "Import Excel", importSub: "Tasks recognized from “this-month.xlsx”",
+      importHelp1: "Will land in the “", importHelp2: "” column; you are set as publisher.", importN: "Import 3", importDesc: "Imported from Excel.",
+      toastAccepted: "Accepted keyword “", toastAdded: "” → added: ", toastIgnored: "Email ignored",
+      toastAuto: "Auto-updated “", toastArrow: "” → ", toastReplyIgnored: "Reply ignored",
+      toastCreated: "Task created", toastSaved: "Saved", toastDeleted: "Task deleted", toastImported: "Imported 3 tasks",
+      toastTemplateSaved: "Template updated", toastTemplateDeleted: "Template deleted",
+      toastKwOn: "Keyword auto-capture enabled", toastKwOff: "Keyword auto-capture paused",
+      toastNameRequired: "Please enter a template name", toastStatusRequired: "At least 2 statuses required",
+      today: "Today", noteReply: "Reply email “", noteReplyClose: "”", by: "by ", custom: "Custom", presets: "Preset templates", customTpl: "Custom templates",
+      newTemplate: "+ New custom template", statusesOfType: "statuses", typesCount: "types"
+    }
+  };
+
+  const tt = (k) => (I18N[state && state.lang] && I18N[state.lang][k]) || I18N.zh[k] || k;
+  function personLabel(name) {
+    if (state.lang === "en") {
+      const m = TEAM.find((x) => x.name === name);
+      if (m && m.en) return m.en;
+      if (name === "系统") return "System";
+      return name;
+    }
+    return name;
+  }
+
+  /* ── 预设模板 ── */
+  const SEED = {
+    general: {
+      name: "通用待办", lang: "zh", desc: "适合任何团队：把散在邮件和 Excel 里的杂事收成一条清晰的进度流。",
+      statuses: ["待处理", "进行中", "待确认", "已完成"],
+      categories: ["一般"],
+      handlerMatrix: [["我", "陈工", "我", "我"]],
+      keywords: ["待办", "跟进", "确认", "报价", "发票"], replyKeywords: [],
+      tasks: [
+        { id: "g1", title: "整理 Q3 客户反馈并汇总", desc: "把邮件里 12 位客户的反馈汇总成一张表，标出共性问题和下季度改进点。", source: "mail", publisher: "李姐", category: "一般", handler: "陈工", priority: "normal", due: "2026-08-22", status: 1, fresh: false, log: [{ actor: "李姐", from: "待处理", to: "进行中", time: "昨天 16:20" }] },
+        { id: "g2", title: "更新官网定价页文案", desc: "新版定价页上线前，统一三个套餐的措辞与价格锚点。", source: "manual", publisher: "陈工", category: "一般", handler: "我", priority: "normal", due: "2026-08-24", status: 0, fresh: false, log: [] },
+        { id: "g3", title: "确认与供应商的合同条款", desc: "Excel 里 6 家供应商的付款周期与账期不一致，需要逐条确认。", source: "excel", publisher: "我", category: "一般", handler: "我", priority: "urgent", due: "2026-08-21", status: 2, fresh: true, log: [{ actor: "我", from: "进行中", to: "待确认", time: "10:42" }] },
+        { id: "g4", title: "复核 6 月发票清单", desc: "比对 Excel 导入的发票明细与银行流水，标注差额。", source: "excel", publisher: "王师傅", category: "一般", handler: "我", priority: "normal", due: "2026-08-23", status: 0, fresh: false, log: [] },
+        { id: "g5", title: "回复客户关于交付时间的邮件", desc: "客户问询项目二期的交付窗口，已回复并同步到共享日历。", source: "mail", publisher: "陈工", category: "一般", handler: "我", priority: "normal", due: "2026-08-19", status: 3, fresh: false, log: [{ actor: "陈工", from: "待处理", to: "已完成", time: "周一 09:15" }] }
+      ],
+      inbox: [
+        { id: "gi1", from: "项目经理 · 林", subject: "跟进：官网更新确认", snippet: "麻烦今天下班前确认官网改版的验收项，我这边好安排上线。", keyword: "跟进", suggestStatus: 0 },
+        { id: "gi2", from: "客户 · 陈生", subject: "关于发票的疑问", snippet: "6 月的发票金额和合同对不上，麻烦帮忙查一下明细。", keyword: "发票", suggestStatus: 0 }
+      ],
+      replies: []
+    },
+    construction: {
+      name: "工程交付", lang: "zh", desc: "为地盘/工程场景预制：从发现问题到递交发票，六步走完一单。",
+      statuses: ["发现问题", "出报价", "等承办商报价", "开工", "完工", "交发票"],
+      categories: ["一般", "水喉"],
+      handlerMatrix: [
+        ["我", "我", "王师傅", "王师傅", "陈工", "我"],
+        ["我", "我", "王师傅", "王师傅", "王师傅", "我"]
+      ],
+      keywords: ["地盘", "报价", "开工", "完工", "发票", "承办商"], replyKeywords: ["报价", "开工", "完工"],
+      tasks: [
+        { id: "c1", title: "地盘 A 座 3 楼发现渗水问题", desc: "承建商现场巡查发现 3 楼走廊天花板渗水，已拍照记录。", source: "mail", publisher: "我", category: "水喉", handler: "我", priority: "urgent", due: "2026-08-18", status: 0, fresh: true, log: [] },
+        { id: "c2", title: "为渗水维修出报价单", desc: "根据现场照片估算维修工程量，出一版报价给业主确认。", source: "manual", publisher: "我", category: "水喉", handler: "我", priority: "high", due: "2026-08-20", status: 1, fresh: false, log: [{ actor: "我", from: "发现问题", to: "出报价", time: "10:20" }] },
+        { id: "c3", title: "等承办商回报价", desc: "已把询价单发给承办商，等对方回复维修报价。", source: "mail", publisher: "我", category: "水喉", handler: "王师傅", priority: "high", due: "2026-08-22", status: 2, fresh: true, log: [{ actor: "王师傅", from: "出报价", to: "等承办商报价", time: "11:05" }] },
+        { id: "c4", title: "漏水维修开工", desc: "承办商确认下周一进场，需提前协调停水时段。", source: "mail", publisher: "王师傅", category: "水喉", handler: "王师傅", priority: "urgent", due: "2026-08-25", status: 3, fresh: false, log: [{ actor: "王师傅", from: "等承办商报价", to: "开工", time: "昨天 15:40" }] },
+        { id: "c5", title: "确认完工验收", desc: "维修完成后到场验收，核对是否已解决渗水。", source: "manual", publisher: "陈工", category: "水喉", handler: "王师傅", priority: "normal", due: "2026-08-28", status: 4, fresh: false, log: [{ actor: "陈工", from: "开工", to: "完工", time: "09:30" }] },
+        { id: "c6", title: "递交 3 月 Invoice", desc: "汇总本月已完工项目，整理发票清单递交给甲方。", source: "excel", publisher: "我", category: "一般", handler: "我", priority: "high", due: "2026-08-30", status: 5, fresh: false, log: [{ actor: "我", from: "完工", to: "交发票", time: "08:50" }] }
+      ],
+      inbox: [
+        { id: "ci1", from: "承办商 · 王", subject: "询价：渗水维修报价", snippet: "请发一份渗水维修的询价单，我们评估后回复报价。", keyword: "报价", suggestStatus: 2 }
+      ],
+      replies: [
+        { id: "cr1", from: "承办商 · 王", subject: "回复：渗水维修报价", snippet: "报价已发你邮箱，总共 12,800，含人工和材料，请查收。", keyword: "报价", refTaskId: "c3", targetStatus: 3 },
+        { id: "cr2", from: "承办商 · 王", subject: "回复：漏水维修进度", snippet: "维修已完成，麻烦安排到场验收。", keyword: "完工", refTaskId: "c4", targetStatus: 4 }
+      ]
+    },
+    sales: {
+      name: "销售跟进", lang: "zh", desc: "把询价邮件和跟进动作收进一条漏斗，谁在哪个阶段一目了然。",
+      statuses: ["新线索", "已联系", "报价中", "已签约", "已关闭"],
+      categories: ["一般"],
+      handlerMatrix: [["我", "李姐", "陈工", "我", "我"]],
+      keywords: ["询价", "报价", "合同", "回款"], replyKeywords: [],
+      tasks: [
+        { id: "s1", title: "新询价：办公家具一批", desc: "客户邮件询价 40 套工位家具，需本周内出报价。", source: "mail", publisher: "我", category: "一般", handler: "我", priority: "high", due: "2026-08-21", status: 0, fresh: true, log: [] },
+        { id: "s2", title: "回访客户 A 需求", desc: "客户 A 之前提到扩容，回访确认具体数量和预算。", source: "manual", publisher: "李姐", category: "一般", handler: "李姐", priority: "normal", due: "2026-08-22", status: 1, fresh: false, log: [{ actor: "李姐", from: "新线索", to: "已联系", time: "昨天 14:10" }] },
+        { id: "s3", title: "发报价单给客户 B", desc: "按 Excel 里的成本表重新核算，发正式报价单。", source: "manual", publisher: "陈工", category: "一般", handler: "陈工", priority: "urgent", due: "2026-08-23", status: 2, fresh: false, log: [{ actor: "陈工", from: "已联系", to: "报价中", time: "10:05" }] },
+        { id: "s4", title: "合同签署跟进", desc: "客户 B 口头同意，等法务回传盖章合同。", source: "mail", publisher: "我", category: "一般", handler: "我", priority: "high", due: "2026-08-26", status: 3, fresh: false, log: [{ actor: "我", from: "报价中", to: "已签约", time: "11:30" }] }
+      ],
+      inbox: [
+        { id: "si1", from: "客户 · 刘", subject: "询价：会议室改造", snippet: "想了解一下会议室改造的报价，方便约个时间电话聊吗？", keyword: "询价", suggestStatus: 0 }
+      ],
+      replies: []
+    },
+    general_en: {
+      name: "General Workflow", lang: "en", desc: "A clean generic pipeline for any team — collect scattered tasks from email and Excel.",
+      statuses: ["Backlog", "In Progress", "Awaiting Reply", "Done"],
+      categories: ["General"],
+      handlerMatrix: [["我", "陈工", "我", "我"]],
+      keywords: ["todo", "follow up", "approve", "invoice"], replyKeywords: [],
+      tasks: [
+        { id: "ge1", title: "Summarize Q3 customer feedback", desc: "Consolidate feedback from 12 customers into one sheet with common issues and next-quarter fixes.", source: "mail", publisher: "李姐", category: "General", handler: "陈工", priority: "normal", due: "2026-08-22", status: 1, fresh: false, log: [{ actor: "李姐", from: "Backlog", to: "In Progress", time: "Yesterday 16:20" }] },
+        { id: "ge2", title: "Update pricing page copy", desc: "Align the wording and price anchors across three plans before launch.", source: "manual", publisher: "陈工", category: "General", handler: "我", priority: "normal", due: "2026-08-24", status: 0, fresh: false, log: [] },
+        { id: "ge3", title: "Confirm supplier contract terms", desc: "Six suppliers in the Excel sheet have inconsistent payment terms — confirm each one.", source: "excel", publisher: "我", category: "General", handler: "我", priority: "urgent", due: "2026-08-21", status: 2, fresh: true, log: [{ actor: "我", from: "In Progress", to: "Awaiting Reply", time: "10:42" }] },
+        { id: "ge4", title: "Reply to delivery timeline email", desc: "Customer asked about the phase-2 delivery window — replied and synced to calendar.", source: "mail", publisher: "陈工", category: "General", handler: "我", priority: "normal", due: "2026-08-19", status: 3, fresh: false, log: [{ actor: "陈工", from: "Backlog", to: "Done", time: "Mon 09:15" }] }
+      ],
+      inbox: [
+        { id: "gei1", from: "PM · Lin", subject: "Follow up: website update sign-off", snippet: "Please confirm the acceptance items for the website update before EOD so I can schedule the launch.", keyword: "follow up", suggestStatus: 0 },
+        { id: "gei2", from: "Client · Chan", subject: "Question about invoice", snippet: "The June invoice amount doesn't match the contract — could you check the breakdown?", keyword: "invoice", suggestStatus: 0 }
+      ],
+      replies: []
+    },
+    construction_en: {
+      name: "Construction Delivery", lang: "en", desc: "Six-step site pipeline: from issue found to invoiced.",
+      statuses: ["Issue Found", "Quoting", "Awaiting Quote", "Work Started", "Completed", "Invoiced"],
+      categories: ["General", "Plumbing"],
+      handlerMatrix: [
+        ["我", "我", "王师傅", "王师傅", "陈工", "我"],
+        ["我", "我", "王师傅", "王师傅", "王师傅", "我"]
+      ],
+      keywords: ["site", "quote", "start", "complete", "invoice", "contractor"], replyKeywords: ["quote", "start", "complete"],
+      tasks: [
+        { id: "ce1", title: "Water leak found on 3/F, Block A", desc: "Contractor's site walk found ceiling leakage on the 3/F corridor, photos recorded.", source: "mail", publisher: "我", category: "Plumbing", handler: "我", priority: "urgent", due: "2026-08-18", status: 0, fresh: true, log: [] },
+        { id: "ce2", title: "Prepare repair quotation", desc: "Estimate the repair works from site photos and draft a quote for the owner.", source: "manual", publisher: "我", category: "Plumbing", handler: "我", priority: "high", due: "2026-08-20", status: 1, fresh: false, log: [{ actor: "我", from: "Issue Found", to: "Quoting", time: "10:20" }] },
+        { id: "ce3", title: "Await contractor's quote", desc: "Sent the RFQ to the contractor, waiting for the repair quote.", source: "mail", publisher: "我", category: "Plumbing", handler: "王师傅", priority: "high", due: "2026-08-22", status: 2, fresh: true, log: [{ actor: "王师傅", from: "Quoting", to: "Awaiting Quote", time: "11:05" }] },
+        { id: "ce4", title: "Repair work started", desc: "Contractor confirmed on-site start next Monday; coordinate water shutoff.", source: "mail", publisher: "王师傅", category: "Plumbing", handler: "王师傅", priority: "urgent", due: "2026-08-25", status: 3, fresh: false, log: [{ actor: "王师傅", from: "Awaiting Quote", to: "Work Started", time: "Yesterday 15:40" }] },
+        { id: "ce5", title: "Confirm completion inspection", desc: "On-site acceptance after the repair, verify the leak is resolved.", source: "manual", publisher: "陈工", category: "General", handler: "陈工", priority: "normal", due: "2026-08-28", status: 4, fresh: false, log: [{ actor: "陈工", from: "Work Started", to: "Completed", time: "09:30" }] }
+      ],
+      inbox: [
+        { id: "cei1", from: "Contractor · Wang", subject: "Quote request: leak repair", snippet: "Please send the RFQ for the leak repair — we'll review and reply with a quote.", keyword: "quote", suggestStatus: 2 }
+      ],
+      replies: [
+        { id: "cer1", from: "Contractor · Wang", subject: "Re: leak repair quote", snippet: "Quote sent to your inbox — 12,800 total, labor and materials included.", keyword: "quote", refTaskId: "ce3", targetStatus: 3 },
+        { id: "cer2", from: "Contractor · Wang", subject: "Re: repair progress", snippet: "Repair is done, please arrange the on-site acceptance.", keyword: "complete", refTaskId: "ce4", targetStatus: 4 }
+      ]
+    }
+  };
+
+  const LS_TEMPLATES = "huiban.templates.v7";
+  const LS_STATE = "huiban.state.v2";
+
+  function loadTemplates() {
+    try { const raw = localStorage.getItem(LS_TEMPLATES); if (raw) { const p = JSON.parse(raw); if (p && Object.keys(p).length) { migrate(p); return p; } } } catch (e) {}
+    return JSON.parse(JSON.stringify(SEED));
+  }
+  function migrate(templates) {
+    Object.keys(templates).forEach((tid) => {
+      const t = templates[tid];
+      (t.tasks || []).forEach((task) => {
+        if (!task.publisher && task.assignee) { task.publisher = task.assignee; delete task.assignee; }
+        if (!task.publisher) task.publisher = "我";
+        if (!task.priority) task.priority = "normal";
+      });
+      if (!t.lang) t.lang = "zh";
+      if (!t.categories || !t.categories.length) t.categories = ["一般"];
+      if (!t.handlerMatrix || !Array.isArray(t.handlerMatrix) || !t.handlerMatrix.length) {
+        const base = (t.handlers && t.handlers.slice()) || (t.statuses || []).map(() => "我");
+        t.handlerMatrix = t.categories.map(() => base.slice());
+      }
+      delete t.handlers;
+      t.categories.forEach((c, ci) => {
+        if (!t.handlerMatrix[ci]) t.handlerMatrix[ci] = (t.statuses || []).map(() => "我");
+        while (t.handlerMatrix[ci].length < (t.statuses || []).length) t.handlerMatrix[ci].push("我");
+      });
+      (t.tasks || []).forEach((task) => {
+        if (!task.category || t.categories.indexOf(task.category) < 0) task.category = t.categories[0];
+        const ci = t.categories.indexOf(task.category);
+        if (ci >= 0 && t.handlerMatrix[ci] && t.handlerMatrix[ci][task.status]) task.handler = t.handlerMatrix[ci][task.status];
+        if (!task.handler) task.handler = "我";
+      });
+      if (!t.replyKeywords) t.replyKeywords = [];
+      if (!t.replies) t.replies = [];
+      if (!t.inbox) t.inbox = [];
+    });
+  }
+  function persistTemplates() { try { localStorage.setItem(LS_TEMPLATES, JSON.stringify(TEMPLATES)); } catch (e) {} }
+  function persistState() { try { localStorage.setItem(LS_STATE, JSON.stringify({ templateId: state.templateId, view: state.view })); } catch (e) {} }
+
+  const TEMPLATES = loadTemplates();
+  let state = { templateId: "general", lang: "zh", filter: "all", catFilter: "all", query: "", view: "board", sort: { key: null, dir: 1 }, modalMode: "view", modalTaskId: null };
+  try { const s = JSON.parse(localStorage.getItem(LS_STATE)); if (s) Object.assign(state, { templateId: s.templateId || "general", view: s.view || "board" }); } catch (e) {}
+  if (!TEMPLATES[state.templateId]) state.templateId = "general";
+  state.lang = (TEMPLATES[state.templateId].lang) || "zh";
+
+  let editDraft = null;
+
+  const $ = (sel) => document.querySelector(sel);
+  const tpl = () => TEMPLATES[state.templateId];
+  const isCustom = (id) => id.indexOf("custom-") === 0;
+
+  /* ── 工具 ── */
+  function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+  function fmtDue(d) { if (!d) return ""; if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d.slice(5); return d; }
+  function dueSortVal(d) { return (d === "今天" || d === "Today") ? "0000-00-00" : (d || ""); }
+  function nowTime() { const d = new Date(); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+  function findTask(id) { return tpl().tasks.find((t) => t.id === id); }
+  function handlerFor(category, statusIdx) {
+    const t = tpl();
+    let ci = (t.categories || []).indexOf(category);
+    if (ci < 0) ci = 0;
+    const row = (t.handlerMatrix && t.handlerMatrix[ci]) || [];
+    return row[statusIdx] || "我";
+  }
+
+  function avatarHtml(name, extraClass) {
+    const m = TEAM.find((x) => x.name === name);
+    let initial;
+    if (m) initial = state.lang === "en" ? m.enInitial : m.initial;
+    else initial = String(personLabel(name)).charAt(0) || "·";
+    const self = !!(m && m.self);
+    return '<span class="avatar ' + (self ? "self" : "") + (extraClass ? " " + extraClass : "") + '" title="' + esc(personLabel(name)) + '">' + esc(initial) + "</span>";
+  }
+  function srcBadge(source) {
+    const label = source === "mail" ? tt("mail") : (source === "excel" ? tt("excel") : tt("manual"));
+    return '<span class="src-badge ' + source + '">' + label + "</span>";
+  }
+  function priBadge(p) {
+    const cls = p === "urgent" ? "pri-urgent" : (p === "high" ? "pri-high" : "pri-normal");
+    const label = p === "urgent" ? tt("urgent") : (p === "high" ? tt("high") : tt("normal"));
+    return '<span class="pri-badge ' + cls + '"><span class="pri-dot"></span>' + label + "</span>";
+  }
+  function kwChips(arr, cls) {
+    if (!arr || !arr.length) return '<span class="kw-empty">' + tt("none") + "</span>";
+    return arr.map((k) => '<span class="kw ' + cls + '">' + esc(k) + "</span>").join("");
+  }
+  function icon(name) {
+    const paths = {
+      clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+      check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+      arrow: '<path d="M9 6l6 6-6 6"/>',
+      close: '<path d="M6 6l12 12M18 6L6 18"/>',
+      trash: '<path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/>'
+    };
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + paths[name] + "</svg>";
+  }
+
+  /* ── 状态转移 ── */
+  function setStatus(task, newIdx, actor, note) {
+    const t = tpl();
+    if (!task || newIdx === task.status) return false;
+    if (newIdx < 0 || newIdx >= t.statuses.length) return false;
+    task.log.push({ actor: actor || "我", from: t.statuses[task.status], to: t.statuses[newIdx], time: nowTime(), note: note || "" });
+    task.status = newIdx;
+    task.handler = handlerFor(task.category, newIdx);
+    task.fresh = true;
+    persistTemplates();
+    return true;
+  }
+
+  /* ── 筛选 + 排序 ── */
+  function visibleTasks() {
+    const q = state.query.trim().toLowerCase();
+    return tpl().tasks.filter((t) => {
+      if (state.filter !== "all" && t.source !== state.filter) return false;
+      if (state.catFilter !== "all" && t.category !== state.catFilter) return false;
+      if (q && !(t.title + " " + t.desc).toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }
+  function sortTasks(tasks) {
+    const { key, dir } = state.sort;
+    if (!key) return tasks;
+    return tasks.slice().sort((a, b) => {
+      if (key === "title") return dir * a.title.localeCompare(b.title, "en");
+      if (key === "status") return (a.status - b.status) * dir;
+      if (key === "priority") return ((PRIORITY[a.priority] ? PRIORITY[a.priority].rank : 2) - (PRIORITY[b.priority] ? PRIORITY[b.priority].rank : 2)) * dir;
+      if (key === "due") { const va = dueSortVal(a.due), vb = dueSortVal(b.due); return (va < vb ? -1 : va > vb ? 1 : 0) * dir; }
+      return 0;
+    });
+  }
+  function toggleSort(key) {
+    if (state.sort.key === key) state.sort.dir *= -1; else state.sort = { key: key, dir: 1 };
+    renderView();
+  }
+  function sortArrow(key) { return state.sort.key === key ? '<span class="sort-ind">' + (state.sort.dir === 1 ? " ↑" : " ↓") + "</span>" : ""; }
+
+  /* ── 静态界面 chrome ── */
+  function renderChrome() {
+    $("#brandName").textContent = tt("brand");
+    $("#searchInput").placeholder = tt("search");
+    $("#inboxBtn").setAttribute("aria-label", tt("inbox"));
+    $("#importLabel").textContent = tt("import");
+    $("#newBtnLabel").textContent = tt("newTask");
+    $("#templateEyebrow").textContent = tt("currentTemplate");
+    $("#kwLabelCreate").textContent = tt("acceptKw");
+    $("#kwLabelReply").textContent = tt("replyKw");
+    $("#editTemplateBtn").textContent = tt("editTemplate");
+    $("#kwSwitchText").textContent = tt("kwSwitch");
+    $("#filterLabelSource").textContent = tt("source");
+    $("#filterLabelType").textContent = tt("type");
+    $("#drawerTitle").textContent = tt("inbox");
+    $("#drawerSub").textContent = tt("drawerSub");
+    const segLabels = { board: tt("board"), table: tt("table") };
+    $("#viewToggle").querySelectorAll(".seg-btn").forEach((b) => { b.textContent = segLabels[b.dataset.view]; });
+    const srcLabels = { all: tt("all"), mail: tt("mail"), excel: tt("excel"), manual: tt("manual") };
+    $("#filterChips").querySelectorAll(".chip").forEach((c) => { c.textContent = srcLabels[c.dataset.filter]; });
+  }
+
+  /* ── 看板视图 ── */
+  function renderBoard() {
+    const board = $("#board");
+    const statuses = tpl().statuses;
+    const tasks = visibleTasks();
+    let html = "";
+    statuses.forEach((s, i) => {
+      const inCol = tasks.filter((t) => t.status === i);
+      const isLast = i === statuses.length - 1;
+      html += '<section class="column" data-od-id="column-' + i + '">';
+      html += '<div class="col-head"><span class="dot' + (isLast ? " terminal" : "") + '"></span><span class="col-name">' + esc(s) + '</span><span class="col-count">' + inCol.length + "</span></div>";
+      if (inCol.length === 0) {
+        html += '<div class="col-empty">' + tt("noTasks") + "</div>";
+      } else {
+        inCol.forEach((t) => {
+          html += '<button class="card" data-od-id="task-card-' + t.id + '" data-id="' + t.id + '">';
+          if (t.fresh) html += '<span class="ribbon" aria-hidden="true"><span>NEW</span></span>';
+          html += '<div class="card-meta">' + srcBadge(t.source) + priBadge(t.priority) + '<span class="due">' + icon("clock") + esc(fmtDue(t.due)) + "</span></div>";
+          html += '<span class="card-title">' + esc(t.title) + "</span>";
+          html += '<span class="card-desc">' + esc(t.desc) + "</span>";
+          html += '<div class="card-footer">' + avatarHtml(t.handler) + '<span class="holder-name">' + esc(personLabel(t.handler)) + '</span><span class="pub">' + esc(t.category) + tt("pubSep") + esc(personLabel(t.publisher)) + "</span>"
+            + (isLast ? '<span class="advance done" title="' + tt("done") + '">' + icon("check") + "</span>" : '<span class="advance" title="' + tt("advance") + '" data-advance="' + t.id + '">' + icon("arrow") + "</span>") + "</div>";
+          html += "</button>";
+        });
+      }
+      html += "</section>";
+    });
+    board.innerHTML = html;
+    $("#countLabel").textContent = tasks.length + " " + tt("tasksCount") + " · " + statuses.length + " " + tt("statusesCount");
+  }
+
+  /* ── 表格视图 ── */
+  function renderTable() {
+    const board = $("#board");
+    const t = tpl();
+    const tasks = sortTasks(visibleTasks());
+    let html = '<div class="table-wrap" data-od-id="table-view"><table class="task-table"><thead><tr>'
+      + '<th class="sortable" data-sort="title" tabindex="0">' + tt("colTask") + sortArrow("title") + "</th>"
+      + '<th class="sortable" data-sort="priority" tabindex="0">' + tt("colPriority") + sortArrow("priority") + "</th>"
+      + "<th>" + tt("type") + "</th><th>" + tt("source") + "</th><th>" + tt("colPublisher") + "</th><th>" + tt("colHandler") + "</th>"
+      + '<th class="sortable" data-sort="status" tabindex="0">' + tt("colStatus") + sortArrow("status") + "</th>"
+      + '<th class="sortable" data-sort="due" tabindex="0">' + tt("colDue") + sortArrow("due") + "</th>"
+      + "</tr></thead><tbody>";
+    if (tasks.length === 0) {
+      html += '<tr><td colspan="8" class="table-empty">' + tt("noMatch") + "</td></tr>";
+    } else {
+      tasks.forEach((task) => {
+        html += '<tr data-id="' + task.id + '" data-od-id="table-row-' + task.id + '">'
+          + '<td><span class="table-title">' + (task.fresh ? '<span class="new-pill">NEW</span>' : "") + esc(task.title) + '</span><span class="table-desc">' + esc(task.desc) + "</span></td>"
+          + "<td>" + priBadge(task.priority) + "</td>"
+          + '<td class="td-cat">' + esc(task.category) + "</td>"
+          + "<td>" + srcBadge(task.source) + "</td>"
+          + '<td class="td-pub">' + esc(personLabel(task.publisher)) + "</td>"
+          + '<td class="td-assignee">' + avatarHtml(task.handler) + '<span class="td-name">' + esc(personLabel(task.handler)) + "</span></td>"
+          + '<td><select class="status-select" data-id="' + task.id + '" aria-label="' + tt("colStatus") + '">' + t.statuses.map((s, i) => '<option value="' + i + '"' + (i === task.status ? " selected" : "") + ">" + esc(s) + "</option>").join("") + "</select></td>"
+          + '<td class="td-due">' + esc(fmtDue(task.due)) + "</td>"
+          + "</tr>";
+      });
+    }
+    html += "</tbody></table></div>";
+    board.innerHTML = html;
+    $("#countLabel").textContent = tasks.length + " " + tt("tasksCount") + " · " + t.statuses.length + " " + tt("statusesCount");
+  }
+
+  function renderView() { if (state.view === "table") renderTable(); else renderBoard(); }
+
+  /* ── 模板元信息 ── */
+  function renderMeta() {
+    const t = tpl();
+    $("#templateTitle").textContent = t.name;
+    $("#templateDesc").textContent = t.desc;
+    $("#templateBtnLabel").textContent = t.name;
+    $("#keywordChips").innerHTML = kwChips(t.keywords, "");
+    $("#replyChips").innerHTML = kwChips(t.replyKeywords, "reply");
+  }
+
+  function renderCatFilters() {
+    const cats = tpl().categories || [];
+    if (state.catFilter !== "all" && cats.indexOf(state.catFilter) < 0) state.catFilter = "all";
+    const el = $("#catFilterChips");
+    let html = '<button class="chip' + (state.catFilter === "all" ? " active" : "") + '" data-cat="all">' + tt("all") + "</button>";
+    cats.forEach((c) => { html += '<button class="chip' + (state.catFilter === c ? " active" : "") + '" data-cat="' + esc(c) + '">' + esc(c) + "</button>"; });
+    el.innerHTML = html;
+  }
+
+  function renderMenu() {
+    const menu = $("#templateMenu");
+    const presetIds = Object.keys(SEED);
+    const customIds = Object.keys(TEMPLATES).filter(isCustom);
+    let html = '<div class="menu-section">' + tt("presets") + "</div>";
+    presetIds.forEach((id) => { html += menuItem(id, false); });
+    if (customIds.length) {
+      html += '<div class="menu-section">' + tt("customTpl") + "</div>";
+      customIds.forEach((id) => { html += menuItem(id, true); });
+    }
+    html += '<div class="menu-add"><button class="btn-secondary btn-sm" id="newTemplateBtn" style="width:100%;justify-content:center;">' + tt("newTemplate") + "</button></div>";
+    menu.innerHTML = html;
+  }
+  function menuItem(id, custom) {
+    const t = TEMPLATES[id];
+    const active = id === state.templateId ? " active" : "";
+    return '<div class="menu-row">'
+      + '<button class="menu-item' + active + '" data-tpl="' + id + '" role="menuitem">'
+      + '<span class="mi-name">' + esc(t.name) + (custom ? '<span class="mi-custom">' + tt("custom") + "</span>" : "") + "</span>"
+      + '<span class="mi-sub">' + esc(t.statuses.length) + " " + tt("statusesOfType") + " · " + esc(t.categories.length) + " " + tt("typesCount") + "</span></button>"
+      + (custom ? '<button class="mi-del" data-del="' + id + '" aria-label="' + tt("deleteTask") + '" title="' + tt("deleteTask") + '">×</button>' : "")
+      + "</div>";
+  }
+
+  /* ── 模板编辑器 ── */
+  function openTemplateEditor() {
+    const t = tpl();
+    const categories = (t.categories && t.categories.length ? t.categories : ["一般"]).slice();
+    const handlerMatrix = (t.handlerMatrix || []).map((row) => row.slice());
+    while (handlerMatrix.length < categories.length) handlerMatrix.push(t.statuses.map(() => "我"));
+    handlerMatrix.forEach((row) => { while (row.length < t.statuses.length) row.push("我"); });
+    editDraft = { name: t.name, desc: t.desc, statuses: t.statuses.slice(), categories: categories, handlerMatrix: handlerMatrix, keywords: t.keywords.slice(), replyKeywords: (t.replyKeywords || []).slice() };
+    const m = $("#templateModal");
+    m.innerHTML =
+      '<div class="modal-head"><div><h2 class="modal-title">' + tt("editTemplate") + '</h2><p class="modal-sub">' + tt("editTemplateSub") + "</p></div>"
+      + '<button class="icon-btn" id="tmplClose" aria-label="' + tt("cancel") + '">' + icon("close") + "</button></div>"
+      + '<div class="modal-body">'
+      + '<div class="field"><label for="tmplName">' + tt("templateName") + '</label><input id="tmplName" type="text" value="' + esc(editDraft.name) + '"></div>'
+      + '<div class="field"><label>' + tt("statusPipeline") + '</label><div class="status-editor" id="statusList"></div><button class="btn-secondary btn-sm" id="addStatus" style="align-self:flex-start;">' + tt("addStatus") + "</button></div>"
+      + '<div class="field"><label>' + tt("matrixTitle") + '</label><div class="matrix-wrap"><table class="matrix-table"><thead id="matrixHead"></thead><tbody id="matrixBody"></tbody></table></div><button class="btn-secondary btn-sm" id="addCategory" style="align-self:flex-start;">' + tt("addType") + '</button><span class="field-help">' + tt("matrixHelp") + "</span></div>"
+      + '<div class="field"><label>' + tt("acceptKwLabel") + '</label><div class="kw-editor"><div class="kw-list" id="kwList"></div><input id="kwInput" type="text" placeholder="' + tt("kwPh") + '"></div></div>'
+      + '<div class="field"><label>' + tt("replyKwLabel") + '</label><div class="kw-editor"><div class="kw-list" id="replyKwList"></div><input id="replyKwInput" type="text" placeholder="' + tt("replyKwPh") + '"></div></div>'
+      + "</div>"
+      + '<div class="modal-foot"><span></span><div style="display:flex;gap:var(--space-2)"><button class="btn-secondary" id="tmplCancel">' + tt("cancel") + '</button><button class="btn-primary" id="tmplSave">' + tt("saveTemplate") + "</button></div></div>";
+    $("#templateOverlay").classList.remove("hidden");
+    $("#templateModal").classList.remove("hidden");
+    renderStatusList();
+    renderMatrix();
+    renderKeywordList();
+    renderReplyKeywordList();
+
+    $("#tmplClose").addEventListener("click", closeTemplateEditor);
+    $("#tmplCancel").addEventListener("click", closeTemplateEditor);
+    $("#tmplName").addEventListener("input", (e) => { editDraft.name = e.target.value; });
+    $("#addStatus").addEventListener("click", () => { editDraft.statuses.push(tt("newStatus")); editDraft.handlerMatrix.forEach((row) => row.push("我")); renderStatusList(); renderMatrix(); });
+    $("#addCategory").addEventListener("click", () => { editDraft.categories.push(tt("newType")); editDraft.handlerMatrix.push(editDraft.statuses.map(() => "我")); renderMatrix(); });
+    $("#kwInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { const v = e.target.value.trim(); if (v && editDraft.keywords.indexOf(v) < 0) { editDraft.keywords.push(v); renderKeywordList(); } e.target.value = ""; e.preventDefault(); }
+    });
+    $("#replyKwInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { const v = e.target.value.trim(); if (v && editDraft.replyKeywords.indexOf(v) < 0) { editDraft.replyKeywords.push(v); renderReplyKeywordList(); } e.target.value = ""; e.preventDefault(); }
+    });
+    $("#tmplSave").addEventListener("click", saveTemplateEditor);
+  }
+  function renderStatusList() {
+    const el = $("#statusList");
+    el.innerHTML = editDraft.statuses.map((s, i) =>
+      '<div class="status-row">'
+      + '<input class="status-input" data-idx="' + i + '" value="' + esc(s) + '">'
+      + '<button class="mini-btn" data-up="' + i + '"' + (i === 0 ? " disabled" : "") + '>↑</button>'
+      + '<button class="mini-btn" data-down="' + i + '"' + (i === editDraft.statuses.length - 1 ? " disabled" : "") + '>↓</button>'
+      + '<button class="mini-btn danger" data-del="' + i + '">×</button>'
+      + "</div>").join("");
+    el.querySelectorAll(".status-input").forEach((inp) => inp.addEventListener("input", (e) => { editDraft.statuses[+e.target.dataset.idx] = e.target.value; }));
+    el.querySelectorAll("[data-up]").forEach((b) => b.addEventListener("click", () => { const i = +b.dataset.up; swapStatus(i - 1, i); renderStatusList(); renderMatrix(); }));
+    el.querySelectorAll("[data-down]").forEach((b) => b.addEventListener("click", () => { const i = +b.dataset.down; swapStatus(i, i + 1); renderStatusList(); renderMatrix(); }));
+    el.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", () => { const i = +b.dataset.del; editDraft.statuses.splice(i, 1); editDraft.handlerMatrix.forEach((row) => row.splice(i, 1)); renderStatusList(); renderMatrix(); }));
+    function swapStatus(a, b) {
+      const tmp = editDraft.statuses[a]; editDraft.statuses[a] = editDraft.statuses[b]; editDraft.statuses[b] = tmp;
+      editDraft.handlerMatrix.forEach((row) => { const t2 = row[a]; row[a] = row[b]; row[b] = t2; });
+    }
+  }
+  function renderMatrix() {
+    const head = $("#matrixHead");
+    head.innerHTML = "<tr><th>" + tt("type") + "</th>" + editDraft.statuses.map((s) => "<th>" + esc(s) + "</th>").join("") + "<th></th></tr>";
+    const body = $("#matrixBody");
+    body.innerHTML = editDraft.categories.map((cat, ci) =>
+      '<tr>'
+      + '<td class="matrix-cat"><input data-cat="' + ci + '" value="' + esc(cat) + '"></td>'
+      + editDraft.statuses.map((s, si) => '<td><select class="matrix-select" data-ci="' + ci + '" data-si="' + si + '">' + TEAM.map((mm) => '<option value="' + mm.name + '"' + ((editDraft.handlerMatrix[ci] || [])[si] === mm.name ? " selected" : "") + ">" + esc(personLabel(mm.name)) + "</option>").join("") + "</select></td>").join("")
+      + '<td><button class="mini-btn danger" data-delcat="' + ci + '">×</button></td>'
+      + "</tr>").join("");
+    body.querySelectorAll("[data-cat]").forEach((inp) => inp.addEventListener("input", (e) => { editDraft.categories[+e.target.dataset.cat] = e.target.value; }));
+    body.querySelectorAll(".matrix-select").forEach((sel) => sel.addEventListener("change", (e) => { editDraft.handlerMatrix[+e.target.dataset.ci][+e.target.dataset.si] = e.target.value; }));
+    body.querySelectorAll("[data-delcat]").forEach((b) => b.addEventListener("click", () => { const ci = +b.dataset.delcat; editDraft.categories.splice(ci, 1); editDraft.handlerMatrix.splice(ci, 1); renderMatrix(); }));
+  }
+  function renderKeywordList() {
+    const el = $("#kwList");
+    el.innerHTML = editDraft.keywords.length
+      ? editDraft.keywords.map((k, i) => '<span class="kw-tag">' + esc(k) + '<button class="kw-remove" data-kw="' + i + '">×</button></span>').join("")
+      : '<span class="kw-empty">' + tt("noAcceptKw") + "</span>";
+    el.querySelectorAll(".kw-remove").forEach((b) => b.addEventListener("click", () => { editDraft.keywords.splice(+b.dataset.kw, 1); renderKeywordList(); }));
+  }
+  function renderReplyKeywordList() {
+    const el = $("#replyKwList");
+    el.innerHTML = editDraft.replyKeywords.length
+      ? editDraft.replyKeywords.map((k, i) => '<span class="kw-tag reply">' + esc(k) + '<button class="kw-remove" data-rkw="' + i + '">×</button></span>').join("")
+      : '<span class="kw-empty">' + tt("noReplyKw") + "</span>";
+    el.querySelectorAll(".kw-remove").forEach((b) => b.addEventListener("click", () => { editDraft.replyKeywords.splice(+b.dataset.rkw, 1); renderReplyKeywordList(); }));
+  }
+  function saveTemplateEditor() {
+    const name = editDraft.name.trim();
+    if (!name) { toast(tt("toastNameRequired")); return; }
+    const keep = [];
+    editDraft.statuses.forEach((s, i) => { if (s.trim()) keep.push(i); });
+    if (keep.length < 2) { toast(tt("toastStatusRequired")); return; }
+    const t = tpl();
+    t.name = name;
+    t.desc = editDraft.desc.trim() || t.desc;
+    t.statuses = keep.map((i) => editDraft.statuses[i].trim());
+    const categories = editDraft.categories.map((c) => c.trim()).filter(Boolean);
+    if (!categories.length) categories.push(t.lang === "en" ? "General" : "一般");
+    t.categories = categories;
+    t.handlerMatrix = editDraft.handlerMatrix.slice(0, categories.length).map((row) => keep.map((i) => row[i] || "我"));
+    while (t.handlerMatrix.length < categories.length) t.handlerMatrix.push(t.statuses.map(() => "我"));
+    t.keywords = editDraft.keywords.slice();
+    t.replyKeywords = editDraft.replyKeywords.slice();
+    t.tasks.forEach((task) => {
+      task.status = Math.min(task.status, t.statuses.length - 1);
+      if (t.categories.indexOf(task.category) < 0) task.category = t.categories[0];
+      task.handler = handlerFor(task.category, task.status);
+    });
+    persistTemplates();
+    closeTemplateEditor();
+    renderAll();
+    toast(tt("toastTemplateSaved"));
+  }
+  function closeTemplateEditor() { $("#templateOverlay").classList.add("hidden"); $("#templateModal").classList.add("hidden"); $("#templateModal").innerHTML = ""; }
+
+  function createCustomTemplate() {
+    const id = "custom-" + Date.now();
+    TEMPLATES[id] = { name: "未命名模板", lang: "zh", desc: "自定义模板", statuses: ["待处理", "进行中", "已完成"], categories: ["一般"], handlerMatrix: [["我", "我", "我"]], keywords: [], replyKeywords: [], tasks: [], inbox: [], replies: [] };
+    state.templateId = id;
+    persistTemplates(); persistState();
+    $("#templateMenu").classList.add("hidden");
+    $("#templateBtn").setAttribute("aria-expanded", "false");
+    renderAll();
+    openTemplateEditor();
+  }
+  function deleteTemplate(id) {
+    delete TEMPLATES[id];
+    if (state.templateId === id) state.templateId = "general";
+    persistTemplates(); persistState();
+    renderAll();
+    toast(tt("toastTemplateDeleted"));
+  }
+
+  /* ── 收件箱 ── */
+  function renderInbox() {
+    const t = tpl();
+    const newCount = t.inbox.length;
+    const replyCount = (t.replies || []).length;
+    $("#inboxBadge").textContent = newCount + replyCount;
+    $("#inboxBadge").classList.toggle("hidden", (newCount + replyCount) === 0);
+    const body = $("#inboxBody");
+    let html = '<div class="inbox-section">' + tt("secAccept") + "</div>";
+    if (newCount === 0) html += '<p class="inbox-empty">' + tt("noEmails") + "</p>";
+    else html += t.inbox.map(draftHtml).join("");
+    html += '<div class="inbox-section">' + tt("secReply") + "</div>";
+    if (replyCount === 0) html += '<p class="inbox-empty">' + tt("noReplies") + "</p>";
+    else html += t.replies.map(replyHtml).join("");
+    body.innerHTML = html;
+  }
+  function draftHtml(d) {
+    return '<div class="draft" data-od-id="draft-' + d.id + '">'
+      + '<div class="draft-route"><span class="kw">' + esc(d.keyword) + '</span><span class="draft.from">' + esc(d.from) + "</span></div>"
+      + '<p class="draft subject">' + esc(d.subject) + "</p>"
+      + '<p class="draft snippet">' + esc(d.snippet) + "</p>"
+      + '<div class="draft-route"><span style="color:var(--muted)">' + tt("suggestedStatus") + '</span><b>' + esc(tpl().statuses[d.suggestStatus] || tpl().statuses[0]) + "</b></div>"
+      + '<div class="draft-actions">'
+      + '<button class="btn-secondary" data-ignore="' + d.id + '">' + tt("ignore") + "</button>"
+      + '<button class="btn-primary" data-confirm="' + d.id + '">' + tt("confirm") + "</button>"
+      + "</div></div>";
+  }
+  function replyHtml(d) {
+    const ref = findTask(d.refTaskId);
+    const refTitle = ref ? ref.title : "—";
+    const toName = tpl().statuses[d.targetStatus] || tpl().statuses[0];
+    return '<div class="draft" data-od-id="reply-' + d.id + '">'
+      + '<div class="draft-route"><span class="kw reply">' + esc(d.keyword) + '</span><span class="draft.from">' + esc(d.from) + "</span></div>"
+      + '<p class="draft subject">' + esc(d.subject) + "</p>"
+      + '<p class="draft snippet">' + esc(d.snippet) + "</p>"
+      + '<div class="draft-route"><span class="reply-target">' + tt("updateTask") + '</span><b>' + esc(refTitle) + '</b><span class="reply-target">→</span><b>' + esc(toName) + "</b></div>"
+      + '<div class="draft-actions">'
+      + '<button class="btn-secondary" data-ignore-reply="' + d.id + '">' + tt("ignore") + "</button>"
+      + '<button class="btn-primary" data-apply="' + d.id + '">' + tt("apply") + "</button>"
+      + "</div></div>";
+  }
+  function confirmDraft(id) {
+    const t = tpl();
+    const idx = t.inbox.findIndex((d) => d.id === id);
+    if (idx < 0) return;
+    const d = t.inbox[idx];
+    const s = Math.min(d.suggestStatus, t.statuses.length - 1);
+    const cat = t.categories[0];
+    t.tasks.push({ id: d.id + "-" + Date.now(), title: d.subject.replace(/^(回复|跟进|Re:|询价|Follow up|Quote)[：:]\s*/i, ""), desc: d.snippet, source: "mail", publisher: "我", category: cat, handler: handlerFor(cat, s), priority: "normal", due: tt("today"), status: s, fresh: true, log: [{ actor: "系统", from: tt("inbox"), to: t.statuses[s], time: nowTime() }] });
+    t.inbox.splice(idx, 1);
+    persistTemplates();
+    toast(tt("toastAccepted") + d.keyword + tt("toastAdded") + t.statuses[s]);
+    renderAll();
+  }
+  function ignoreDraft(id) {
+    const t = tpl();
+    t.inbox = t.inbox.filter((d) => d.id !== id);
+    persistTemplates();
+    toast(tt("toastIgnored"));
+    renderAll();
+  }
+  function applyReply(id) {
+    const t = tpl();
+    const idx = (t.replies || []).findIndex((d) => d.id === id);
+    if (idx < 0) return;
+    const d = t.replies[idx];
+    const ref = findTask(d.refTaskId);
+    if (ref) {
+      if (setStatus(ref, d.targetStatus, "系统", d.keyword)) {
+        toast(tt("toastAuto") + ref.title + tt("toastArrow") + (t.statuses[d.targetStatus] || ""));
+      }
+    }
+    t.replies.splice(idx, 1);
+    persistTemplates();
+    renderAll();
+  }
+  function ignoreReply(id) {
+    const t = tpl();
+    t.replies = (t.replies || []).filter((d) => d.id !== id);
+    persistTemplates();
+    toast(tt("toastReplyIgnored"));
+    renderAll();
+  }
+
+  /* ── 任务详情 / 新建 ── */
+  function renderTaskModal() {
+    const t = tpl();
+    const isNew = state.modalMode === "create";
+    const task = isNew ? null : findTask(state.modalTaskId);
+    const m = $("#taskModal");
+    if (!task && !isNew) { closeModal(); return; }
+
+    const statuses = t.statuses;
+    const cur = task ? task.status : 0;
+    const defaultCat = t.categories[0] || "一般";
+    const category = task ? task.category : defaultCat;
+    const handler = task ? task.handler : handlerFor(defaultCat, 0);
+    const stepper = statuses.map((s, i) => {
+      const cls = i === cur ? "current" : (i < cur ? "done" : "");
+      const conn = i < statuses.length - 1 ? '<span class="step-connector"></span>' : "";
+      return '<button class="step ' + cls + '" data-step="' + i + '"><span class="step-idx">' + (i < cur ? "✓" : i + 1) + "</span>" + esc(s) + "</button>" + conn;
+    }).join("");
+
+    const logHtml = task && task.log.length
+      ? task.log.map((l) => '<div class="log-item">' + avatarHtml(l.actor) + '<span class="log-body"><b>' + esc(personLabel(l.actor)) + "</b> " + tt("movedFrom") + " <b>" + esc(l.from) + "</b> " + tt("toWord") + " <b>" + esc(l.to) + "</b>" + (l.note ? ' <span class="log-note">' + tt("noteReply") + esc(l.note) + tt("noteReplyClose") + "</span>" : "") + '</span><span class="log-time">' + esc(l.time) + "</span></div>").join("")
+      : '<div class="log-item"><span class="log-body">' + tt("noLog") + "</span></div>";
+
+    function personSelect(id, val) {
+      return '<select id="' + id + '">' + TEAM.map((mm) => '<option value="' + mm.name + '"' + (val === mm.name ? " selected" : "") + ">" + esc(personLabel(mm.name)) + "</option>").join("") + "</select>";
+    }
+    function categorySelect(id, val) {
+      return '<select id="' + id + '">' + t.categories.map((c) => '<option value="' + esc(c) + '"' + (val === c ? " selected" : "") + ">" + esc(c) + "</option>").join("") + "</select>";
+    }
+
+    m.innerHTML =
+      '<div class="modal-head">'
+      + '<div><h2 class="modal-title">' + (isNew ? tt("newTaskTitle") : esc(task.title)) + '</h2>'
+      + '<p class="modal-sub">' + (isNew ? tt("newSub") : srcBadge(task.source) + " · " + tt("pubShort") + " " + esc(personLabel(task.publisher))) + "</p></div>"
+      + '<button class="icon-btn" id="modalClose" aria-label="' + tt("cancel") + '">' + icon("close") + "</button></div>"
+      + '<div class="modal-body">'
+      + '<div class="field"><label>' + tt("statusLabel") + '</label><div class="stepper" data-od-id="stepper">' + stepper + "</div></div>"
+      + '<div class="field" id="titleField"><label for="fTitle">' + tt("taskTitle") + '</label><input id="fTitle" type="text" placeholder="' + tt("titlePh") + '" value="' + (task ? esc(task.title) : "") + '"><span class="error-msg hidden">' + tt("titleRequired") + "</span></div>"
+      + '<div class="field"><label for="fDesc">' + tt("desc") + '</label><textarea id="fDesc" placeholder="' + tt("descPh") + '">' + (task ? esc(task.desc) : "") + "</textarea></div>"
+      + '<div class="field-row"><div class="field"><label for="fPublisher">' + tt("publisher") + "</label>" + personSelect("fPublisher", task ? task.publisher : "我") + "</div>"
+      + '<div class="field"><label for="fCategory">' + tt("typeField") + "</label>" + categorySelect("fCategory", category) + "</div></div>"
+      + '<div class="field"><label>' + tt("handlerAuto") + '</label><div class="derived">' + avatarHtml(handler) + "<b>" + esc(personLabel(handler)) + '</b><span class="field-help">' + tt("handlerAutoHelp") + "</span></div></div>"
+      + '<div class="field-row"><div class="field"><label for="fPriority">' + tt("priority") + '</label><select id="fPriority"><option value="urgent"' + (task && task.priority === "urgent" ? " selected" : "") + ">" + tt("urgent") + '</option><option value="high"' + (task && task.priority === "high" ? " selected" : "") + ">" + tt("high") + '</option><option value="normal"' + (!task || (task.priority !== "urgent" && task.priority !== "high") ? " selected" : "") + ">" + tt("normal") + "</option></select></div>"
+      + '<div class="field"><label for="fDue">' + tt("dueDate") + '</label><input id="fDue" type="date" value="' + (task && /^\d{4}-\d{2}-\d{2}$/.test(task.due) ? esc(task.due) : "") + '"></div></div>'
+      + (task ? '<div class="field"><label>' + tt("activity") + '</label><div class="log" data-od-id="activity-log">' + logHtml + "</div></div>" : "")
+      + "</div>"
+      + '<div class="modal-foot">'
+      + (task ? '<button class="link" id="modalDelete" style="color:var(--danger)">' + tt("deleteTask") + "</button>" : "<span></span>")
+      + '<div style="display:flex;gap:var(--space-2)"><button class="btn-secondary" id="modalCancel">' + tt("cancel") + '</button><button class="btn-primary" id="modalSave">' + (isNew ? tt("create") : tt("save")) + "</button></div>"
+      + "</div>";
+
+    $("#modalOverlay").classList.remove("hidden");
+    $("#taskModal").classList.remove("hidden");
+
+    m.querySelectorAll(".step").forEach((el) => {
+      el.addEventListener("click", () => {
+        if (!task) return;
+        const to = parseInt(el.dataset.step, 10);
+        if (setStatus(task, to)) renderTaskModal();
+      });
+    });
+    $("#modalClose").addEventListener("click", closeModal);
+    $("#modalCancel").addEventListener("click", closeModal);
+    if (task) $("#modalDelete").addEventListener("click", () => { tpl().tasks = tpl().tasks.filter((x) => x.id !== task.id); persistTemplates(); toast(tt("toastDeleted")); closeModal(); renderView(); });
+    $("#modalSave").addEventListener("click", () => {
+      const title = $("#fTitle").value.trim();
+      if (!title) { $("#titleField").classList.add("error"); $("#titleField .error-msg").classList.remove("hidden"); $("#fTitle").focus(); return; }
+      const due = $("#fDue").value || tt("today");
+      const publisher = $("#fPublisher").value;
+      const category = $("#fCategory").value;
+      const priority = $("#fPriority").value;
+      const handler = handlerFor(category, cur);
+      if (isNew) {
+        tpl().tasks.unshift({ id: "m" + Date.now(), title: title, desc: $("#fDesc").value.trim(), source: "manual", publisher: publisher, category: category, handler: handler, priority: priority, due: due, status: 0, fresh: true, log: [] });
+        toast(tt("toastCreated"));
+      } else {
+        task.title = title; task.desc = $("#fDesc").value.trim(); task.publisher = publisher; task.category = category; task.handler = handler; task.priority = priority; task.due = due;
+        toast(tt("toastSaved"));
+      }
+      persistTemplates();
+      closeModal();
+      renderView(); renderMeta();
+    });
+  }
+  function openTask(id) {
+    state.modalMode = "view"; state.modalTaskId = id;
+    const task = findTask(id);
+    if (task && task.fresh) { task.fresh = false; persistTemplates(); }
+    renderTaskModal();
+  }
+  function openNew() { state.modalMode = "create"; state.modalTaskId = null; renderTaskModal(); }
+  function closeModal() { $("#modalOverlay").classList.add("hidden"); $("#taskModal").classList.add("hidden"); $("#taskModal").innerHTML = ""; }
+
+  /* ── 导入 Excel ── */
+  const IMPORT_ROWS = [
+    ["维修 A 座 3 楼渗水", "王师傅", "2026-08-26"],
+    ["订购五金配件一批", "李姐", "2026-08-27"],
+    ["更新供应商价格表", "我", "2026-08-29"]
+  ];
+  function renderImportModal() {
+    $("#importModal").innerHTML =
+      '<div class="modal-head"><div><h2 class="modal-title">' + tt("importExcel") + '</h2><p class="modal-sub">' + tt("importSub") + "</p></div>"
+      + '<button class="icon-btn" id="importClose" aria-label="' + tt("cancel") + '">' + icon("close") + "</button></div>"
+      + '<div class="modal-body">'
+      + '<table class="preview-table"><thead><tr><th>' + tt("colTask") + "</th><th>" + tt("colHandler") + "</th><th>" + tt("colDue") + "</th></tr></thead><tbody>"
+      + IMPORT_ROWS.map((r) => "<tr><td>" + esc(r[0]) + "</td><td>" + esc(personLabel(r[1])) + "</td><td>" + esc(fmtDue(r[2])) + "</td></tr>").join("")
+      + "</tbody></table>"
+      + '<p class="field-help">' + tt("importHelp1") + esc(tpl().statuses[0]) + tt("importHelp2") + "</p>"
+      + "</div>"
+      + '<div class="modal-foot"><span></span><div style="display:flex;gap:var(--space-2)"><button class="btn-secondary" id="importCancel">' + tt("cancel") + '</button><button class="btn-primary" id="importConfirm">' + tt("importN") + "</button></div></div>";
+    $("#importOverlay").classList.remove("hidden");
+    $("#importModal").classList.remove("hidden");
+    $("#importClose").addEventListener("click", closeImport);
+    $("#importCancel").addEventListener("click", closeImport);
+    $("#importConfirm").addEventListener("click", () => {
+      const cat = tpl().categories[0];
+      IMPORT_ROWS.forEach((r) => tpl().tasks.unshift({ id: "x" + Date.now() + r[0], title: r[0], desc: tt("importDesc"), source: "excel", publisher: "我", category: cat, handler: r[1], priority: "normal", due: r[2], status: 0, fresh: true, log: [] }));
+      persistTemplates();
+      toast(tt("toastImported"));
+      closeImport(); renderView();
+    });
+  }
+  function closeImport() { $("#importOverlay").classList.add("hidden"); $("#importModal").classList.add("hidden"); $("#importModal").innerHTML = ""; }
+
+  /* ── toast ── */
+  let toastTimer = null;
+  function toast(msg) {
+    const el = $("#toast");
+    el.innerHTML = icon("check") + "<span>" + esc(msg) + "</span>";
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+  }
+
+  /* ── 事件绑定 ── */
+  function syncViewToggle() {
+    $("#viewToggle").querySelectorAll(".seg-btn").forEach((b) => b.classList.toggle("active", b.dataset.view === state.view));
+  }
+  function bindStatic() {
+    const btn = $("#templateBtn");
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const menu = $("#templateMenu");
+      menu.classList.toggle("hidden");
+      btn.setAttribute("aria-expanded", menu.classList.contains("hidden") ? "false" : "true");
+    });
+    document.addEventListener("click", (e) => {
+      const menu = $("#templateMenu");
+      if (!menu.classList.contains("hidden") && !e.target.closest(".template-switch")) { menu.classList.add("hidden"); $("#templateBtn").setAttribute("aria-expanded", "false"); }
+    });
+    $("#templateMenu").addEventListener("click", (e) => {
+      const del = e.target.closest(".mi-del");
+      if (del) { deleteTemplate(del.dataset.del); return; }
+      const add = e.target.closest("#newTemplateBtn");
+      if (add) { createCustomTemplate(); return; }
+      const item = e.target.closest(".menu-item");
+      if (!item) return;
+      state.templateId = item.dataset.tpl;
+      persistState();
+      $("#templateMenu").classList.add("hidden");
+      $("#templateBtn").setAttribute("aria-expanded", "false");
+      renderAll();
+    });
+
+    $("#searchInput").addEventListener("input", (e) => { state.query = e.target.value; renderView(); });
+
+    $("#filterChips").addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      state.filter = chip.dataset.filter;
+      $("#filterChips").querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      renderView();
+    });
+
+    $("#catFilterChips").addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      state.catFilter = chip.dataset.cat;
+      renderCatFilters();
+      renderView();
+    });
+
+    $("#viewToggle").addEventListener("click", (e) => {
+      const b = e.target.closest(".seg-btn");
+      if (!b) return;
+      state.view = b.dataset.view;
+      syncViewToggle();
+      persistState();
+      renderView();
+    });
+
+    $("#newBtn").addEventListener("click", openNew);
+    $("#importBtn").addEventListener("click", renderImportModal);
+    $("#editTemplateBtn").addEventListener("click", openTemplateEditor);
+
+    $("#inboxBtn").addEventListener("click", () => { renderInbox(); $("#inboxDrawer").classList.add("open"); $("#inboxOverlay").classList.remove("hidden"); });
+    function closeInbox() { $("#inboxDrawer").classList.remove("open"); $("#inboxOverlay").classList.add("hidden"); }
+    $("#inboxClose").addEventListener("click", closeInbox);
+    $("#inboxOverlay").addEventListener("click", closeInbox);
+    $("#inboxBody").addEventListener("click", (e) => {
+      const c = e.target.closest("[data-confirm]");
+      if (c) { confirmDraft(c.dataset.confirm); return; }
+      const ig = e.target.closest("[data-ignore]");
+      if (ig) { ignoreDraft(ig.dataset.ignore); return; }
+      const ap = e.target.closest("[data-apply]");
+      if (ap) { applyReply(ap.dataset.apply); return; }
+      const igr = e.target.closest("[data-ignore-reply]");
+      if (igr) { ignoreReply(igr.dataset.ignoreReply); return; }
+    });
+
+    $("#board").addEventListener("click", (e) => {
+      const adv = e.target.closest("[data-advance]");
+      if (adv) {
+        e.stopPropagation();
+        const task = findTask(adv.dataset.advance);
+        if (task) { if (setStatus(task, task.status + 1)) renderView(); }
+        return;
+      }
+      const sort = e.target.closest("th.sortable");
+      if (sort) { toggleSort(sort.dataset.sort); return; }
+      const card = e.target.closest(".card[data-id]");
+      if (card) { openTask(card.dataset.id); return; }
+      const row = e.target.closest("tr[data-id]");
+      if (row && !e.target.closest(".status-select")) { openTask(row.dataset.id); return; }
+    });
+    $("#board").addEventListener("change", (e) => {
+      const sel = e.target.closest(".status-select");
+      if (!sel) return;
+      const task = findTask(sel.dataset.id);
+      const to = parseInt(sel.value, 10);
+      if (setStatus(task, to)) renderView();
+    });
+
+    $("#modalOverlay").addEventListener("click", closeModal);
+    $("#importOverlay").addEventListener("click", closeImport);
+    $("#templateOverlay").addEventListener("click", closeTemplateEditor);
+
+    const sw = $("#kwSwitch");
+    sw.addEventListener("click", () => {
+      const on = sw.getAttribute("aria-checked") !== "true";
+      sw.setAttribute("aria-checked", on ? "true" : "false");
+      toast(on ? tt("toastKwOn") : tt("toastKwOff"));
+    });
+    sw.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); sw.click(); } });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { closeModal(); closeImport(); closeTemplateEditor(); $("#inboxDrawer").classList.remove("open"); $("#inboxOverlay").classList.add("hidden"); }
+    });
+  }
+
+  function renderAll() {
+    state.lang = (tpl() && tpl().lang) || "zh";
+    renderChrome();
+    renderMeta();
+    renderMenu();
+    renderCatFilters();
+    renderView();
+    renderInbox();
+  }
+
+  syncViewToggle();
+  renderAll();
+  bindStatic();
+})();
+</script>
+</body>
+</html>

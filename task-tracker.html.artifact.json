@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "task-tracker.html",
+  "entry": "task-tracker.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-20T13:10:45.886Z",
+  "updatedAt": "2026-08-20T13:10:45.886Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}
