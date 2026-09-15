@@ -17,7 +17,7 @@ export default function MembersModal({ workspaceId, userId, lang, onClose, onCha
   const load = useCallback(async () => {
     const r = await fetch(`/api/workspaces/${workspaceId}/members`).then((x) => x.json());
     setMembers(r.members || []);
-    const me = (r.members || []).find((m) => m.id === userId);
+    const me = (r.members || []).find((m: Member) => m.id === userId);
     if (me) setMyName(me.name);
   }, [workspaceId, userId]);
 

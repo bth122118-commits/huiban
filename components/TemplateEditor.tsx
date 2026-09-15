@@ -73,14 +73,14 @@ export default function TemplateEditor({ templateId, workspaceId, lang, onClose,
         <h2 style={{ margin: "0 0 16px", fontSize: 18 }}>{t(lang, "editTemplateTitle")}</h2>
 
         <label style={fieldLabel}>{t(lang, "templateName")}
-          <input value={name} onChange={(e) => setName(e.target.value)} style={input} />
+          <input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
         </label>
 
         <div style={{ marginTop: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t(lang, "statusPipeline")}</div>
           {statuses.map((s, i) => (
             <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-              <input value={s} onChange={(e) => setStatuses((x) => x.map((v, xi) => (xi === i ? e.target.value : v)))} style={{ ...input, flex: 1 }} />
+              <input value={s} onChange={(e) => setStatuses((x) => x.map((v, xi) => (xi === i ? e.target.value : v)))} style={{ ...inputStyle, flex: 1 }} />
               <button onClick={() => moveStatus(i, -1)} disabled={i === 0} style={miniBtn}>↑</button>
               <button onClick={() => moveStatus(i, 1)} disabled={i === statuses.length - 1} style={miniBtn}>↓</button>
               <button onClick={() => delStatus(i)} style={{ ...miniBtn, color: "#dc2626" }}>×</button>
@@ -103,10 +103,10 @@ export default function TemplateEditor({ templateId, workspaceId, lang, onClose,
               <tbody>
                 {categories.map((c, ci) => (
                   <tr key={ci}>
-                    <td style={td}><input value={c} onChange={(e) => setCategories((x) => x.map((v, xi) => (xi === ci ? e.target.value : v)))} style={{ ...input, minWidth: 90 }} /></td>
+                    <td style={td}><input value={c} onChange={(e) => setCategories((x) => x.map((v, xi) => (xi === ci ? e.target.value : v)))} style={{ ...inputStyle, minWidth: 90 }} /></td>
                     {statuses.map((_, si) => (
                       <td key={si} style={td}>
-                        <select value={matrix[ci]?.[si] || ""} onChange={(e) => setCell(ci, si, e.target.value)} style={{ ...input, minWidth: 100 }}>
+                        <select value={matrix[ci]?.[si] || ""} onChange={(e) => setCell(ci, si, e.target.value)} style={{ ...inputStyle, minWidth: 100 }}>
                           <option value="">{t(lang, "unassigned")}</option>
                           {members.map((mm) => <option key={mm.id} value={mm.id}>{mm.name}</option>)}
                         </select>
@@ -150,7 +150,7 @@ function KeywordEditor({ label, lang, items, setItems, input, setInput }: {
         ))}
         {items.length === 0 && <span style={{ color: "#999", fontSize: 13 }}>{t(lang, "noKw")}</span>}
       </div>
-      <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} placeholder={t(lang, "kwPlaceholder")} style={{ ...input, maxWidth: 320 }} />
+      <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} placeholder={t(lang, "kwPlaceholder")} style={{ ...inputStyle, maxWidth: 320 }} />
     </div>
   );
 }
@@ -160,7 +160,7 @@ function Overlay({ children, onClick }: { children: ReactNode; onClick?: () => v
 }
 
 const panel: CSSProperties = { background: "#fff", borderRadius: 16, padding: 20 };
-const input: CSSProperties = { padding: "8px 10px", border: "1px solid #e5e5e5", borderRadius: 8, fontSize: 14, boxSizing: "border-box" };
+const inputStyle: CSSProperties = { padding: "8px 10px", border: "1px solid #e5e5e5", borderRadius: 8, fontSize: 14, boxSizing: "border-box" };
 const fieldLabel: CSSProperties = { display: "grid", gap: 6, fontSize: 13, color: "#333" };
 const th: CSSProperties = { textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e5e5e5", fontSize: 12, color: "#666", whiteSpace: "nowrap" };
 const td: CSSProperties = { padding: "4px 4px", borderBottom: "1px solid #f0f0f0" };
