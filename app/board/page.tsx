@@ -1,18 +1,19 @@
 "use client";
 // 汇办 Huiban · 看板 / 表格双视图（界面语言跟随当前模板 lang）
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase-browser";
 import { t, type Lang } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
 import TemplateEditor from "@/components/TemplateEditor";
 import InboxDrawer from "@/components/InboxDrawer";
 import MembersModal from "@/components/MembersModal";
+import ExcelImportModal from "@/components/ExcelImportModal";
 
 type Template = { id: string; name: string; lang: string; statuses: string[]; categories: string[] };
 type Task = {
   id: string; template_id: string; title: string; description: string;
   status_index: number; priority: string; due_date: string | null;
-  source: string; category: string; handler_id: string | null; publisher_id: string | null; fresh: boolean;
+  source: string; category: string; handler_id: string | null; handler_name: string | null; publisher_id: string | null; fresh: boolean;
 };
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, normal: 2 };
 const SOURCES = ["all", "mail", "excel", "manual"] as const;
@@ -36,6 +37,7 @@ export default function BoardPage() {
   const [editingTemplate, setEditingTemplate] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -90,7 +92,7 @@ export default function BoardPage() {
   const lang: Lang = template?.lang === "en" ? "en" : "zh";
   const statuses = template?.statuses || [];
   const categories = template?.categories || [];
-  const handlerName = (id: string | null) => (id ? (members[id] || "…") : t(lang, "unassigned"));
+  const handlerLabel = (task: Task) => task.handler_id ? (members[task.handler_id] || "…") : (task.handler_name || t(lang, "unassigned"));
 
   const visibleTasks = useMemo(() => tasks.filter((t) => {
     if (t.template_id !== templateId) return false;
@@ -125,95 +127,96 @@ export default function BoardPage() {
     setModal({ mode: "edit", taskId: task.id });
   }
 
-  if (!ready) return <p style={{ padding: 24 }}>{t(lang, "loading")}</p>;
-  if (loadError) return <p style={{ padding: 24, color: "#dc2626" }}>{t(lang, "loadError")}{loadError}</p>;
-  if (!workspaceId) return <p style={{ padding: 24 }}><a href="/onboarding">{t(lang, "firstWorkspace")}</a></p>;
+  if (!ready) return <p className="page-state">{t(lang, "loading")}</p>;
+  if (loadError) return <p className="page-state" style={{ color: "var(--danger)" }}>{t(lang, "loadError")}{loadError}</p>;
+  if (!workspaceId) return <p className="page-state"><a href="/onboarding">{t(lang, "firstWorkspace")}</a></p>;
 
   return (
-    <main style={{ padding: 24 }}>
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <span style={{ fontWeight: 600, fontSize: 15, padding: "8px 2px" }}>{workspaceName}</span>
-        <select value={templateId} onChange={(e) => setTemplateId(e.target.value)} style={selStyle}>
+    <main className="board-shell">
+      <div className="toolbar">
+        <span className="toolbar-title">{workspaceName}</span>
+        <select className="select" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
           {templates.map((tm) => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
         </select>
-        <button onClick={() => setEditingTemplate(true)} style={btnSecondary}>{t(lang, "editTemplate")}</button>
-        <button onClick={() => setInboxOpen(true)} style={btnSecondary}>{t(lang, "inbox")}</button>
-        <button onClick={() => setMembersOpen(true)} style={btnSecondary}>{t(lang, "members")}</button>
+        <button className="btn btn-secondary" onClick={() => setEditingTemplate(true)}>{t(lang, "editTemplate")}</button>
+        <button className="btn btn-secondary" onClick={() => setInboxOpen(true)}>{t(lang, "inbox")}</button>
+        <button className="btn btn-secondary" onClick={() => setMembersOpen(true)}>{t(lang, "members")}</button>
+        <button className="btn btn-secondary" onClick={() => setImportOpen(true)}>{t(lang, "importExcel")}</button>
 
-        <div style={{ display: "flex", gap: 2, background: "#eee", borderRadius: 8, padding: 2 }}>
+        <div className="seg">
           {(["board", "table"] as const).map((v) => (
-            <button key={v} onClick={() => setView(v)} style={{ ...viewBtn, ...(view === v ? { background: "#fff", color: "#111" } : {}) }}>{t(lang, v)}</button>
+            <button key={v} className="seg-btn" data-on={view === v} onClick={() => setView(v)}>{t(lang, v)}</button>
           ))}
         </div>
 
-        <input placeholder={t(lang, "search")} value={query} onChange={(e) => setQuery(e.target.value)} style={{ ...selStyle, minWidth: 140 }} />
+        <input className="input" style={{ minWidth: 140, width: "auto" }} placeholder={t(lang, "search")} value={query} onChange={(e) => setQuery(e.target.value)} />
 
         <div style={{ display: "flex", gap: 6 }}>
           {SOURCES.map((s) => (
-            <button key={s} onClick={() => setSourceFilter(s)} style={{ ...chip, ...(sourceFilter === s ? chipOn : {}) }}>{t(lang, s)}</button>
+            <button key={s} className="chip" data-on={sourceFilter === s} onClick={() => setSourceFilter(s)}>{t(lang, s)}</button>
           ))}
         </div>
         {categories.length > 0 && (
           <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => setCategoryFilter("all")} style={{ ...chip, ...(categoryFilter === "all" ? chipOn : {}) }}>{t(lang, "allType")}</button>
+            <button className="chip" data-on={categoryFilter === "all"} onClick={() => setCategoryFilter("all")}>{t(lang, "allType")}</button>
             {categories.map((c) => (
-              <button key={c} onClick={() => setCategoryFilter(c)} style={{ ...chip, ...(categoryFilter === c ? chipOn : {}) }}>{c}</button>
+              <button key={c} className="chip" data-on={categoryFilter === c} onClick={() => setCategoryFilter(c)}>{c}</button>
             ))}
           </div>
         )}
 
-        <button onClick={() => setModal({ mode: "create" })} style={{ ...btnPrimary, marginLeft: "auto" }}>{t(lang, "newTask")}</button>
+        <button className="btn btn-primary" style={{ marginLeft: "auto" }} onClick={() => setModal({ mode: "create" })}>{t(lang, "newTask")}</button>
       </div>
 
       {view === "board" ? (
-        <div style={{ display: "flex", gap: 12, overflowX: "auto", alignItems: "flex-start" }}>
+        <div className="board">
           {statuses.map((status, i) => {
             const col = visibleTasks.filter((t) => t.status_index === i);
             return (
-              <section key={i} style={{ minWidth: 240, border: "1px solid #e5e5e5", borderRadius: 12, padding: 12, background: "#fff" }}>
-                <h3 style={{ margin: "0 0 10px", fontSize: 14 }}>{status} <small style={{ color: "#999" }}>{col.length}</small></h3>
+              <section key={i} className="column">
+                <h3 className="col-head"><span className="col-name">{status}</span><span className="col-count">{col.length}</span></h3>
                 {col.map((task) => (
-                  <div key={task.id} onClick={() => openEdit(task)} style={{ border: "1px solid #e5e5e5", borderRadius: 8, padding: 10, marginBottom: 8, background: "#fafafa", cursor: "pointer", position: "relative" }}>
-                    {task.fresh && <span style={{ position: "absolute", top: 6, right: 6, background: "#dc2626", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, padding: "1px 6px" }}>NEW</span>}
-                    <b style={{ fontSize: 14 }}>{task.title}</b>
-                    <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>{t(lang, task.priority)} · {t(lang, task.source)}</div>
-                    <div style={{ fontSize: 12, color: "#333", marginTop: 4 }}>{t(lang, "handler")}：{handlerName(task.handler_id)}</div>
+                  <div key={task.id} className="card" onClick={() => openEdit(task)}>
+                    {task.fresh && <span className="badge-new">NEW</span>}
+                    <span className="card-title">{task.title}</span>
+                    <div className="card-meta">{t(lang, task.priority)} · {t(lang, task.source)}</div>
+                    <div className="card-handler">{t(lang, "handler")}：{handlerLabel(task)}</div>
                   </div>
                 ))}
-                {col.length === 0 && <div style={{ fontSize: 12, color: "#aaa", textAlign: "center", padding: "20px 0" }}>{t(lang, "noTasks")}</div>}
+                {col.length === 0 && <div className="col-empty">{t(lang, "noTasks")}</div>}
               </section>
             );
           })}
         </div>
       ) : (
-        <div style={{ border: "1px solid #e5e5e5", borderRadius: 12, background: "#fff", overflowX: "auto" }}>
-          <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 14, minWidth: 860 }}>
+        <div className="table-wrap">
+          <table className="table">
             <thead>
               <tr>
-                <th style={th} onClick={() => toggleSort("title")}>{t(lang, "title")}{arrow("title")}</th>
-                <th style={th} onClick={() => toggleSort("priority")}>{t(lang, "priority")}{arrow("priority")}</th>
-                <th style={th}>{t(lang, "type")}</th>
-                <th style={th}>{t(lang, "handler")}</th>
-                <th style={th} onClick={() => toggleSort("status")}>{t(lang, "status")}{arrow("status")}</th>
-                <th style={th} onClick={() => toggleSort("due")}>{t(lang, "due")}{arrow("due")}</th>
+                <th onClick={() => toggleSort("title")}>{t(lang, "title")}{arrow("title")}</th>
+                <th onClick={() => toggleSort("priority")}>{t(lang, "priority")}{arrow("priority")}</th>
+                <th>{t(lang, "type")}</th>
+                <th>{t(lang, "handler")}</th>
+                <th onClick={() => toggleSort("status")}>{t(lang, "status")}{arrow("status")}</th>
+                <th onClick={() => toggleSort("due")}>{t(lang, "due")}{arrow("due")}</th>
               </tr>
             </thead>
             <tbody>
               {sortedTasks.map((task) => (
-                <tr key={task.id} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer" }} onClick={() => openEdit(task)}>
-                  <td style={td}><b>{task.title}</b>{task.fresh ? <span style={newPill}>NEW</span> : null}</td>
-                  <td style={td}>{t(lang, task.priority)}</td>
-                  <td style={td}>{task.category || "—"}</td>
-                  <td style={td}>{handlerName(task.handler_id)}</td>
-                  <td style={td} onClick={(e) => e.stopPropagation()}>
-                    <select value={task.status_index} onChange={(e) => changeStatus(task.id, Number(e.target.value))} style={{ ...selStyle, padding: "4px 8px" }}>
+                <tr key={task.id} onClick={() => openEdit(task)}>
+                  <td><b>{task.title}</b>{task.fresh ? <span className="pill-new">NEW</span> : null}</td>
+                  <td>{t(lang, task.priority)}</td>
+                  <td>{task.category || "—"}</td>
+                  <td>{handlerLabel(task)}</td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <select className="select" style={{ padding: "4px 8px" }} value={task.status_index} onChange={(e) => changeStatus(task.id, Number(e.target.value))}>
                       {statuses.map((s, i) => <option key={i} value={i}>{s}</option>)}
                     </select>
                   </td>
-                  <td style={td}>{task.due_date || "—"}</td>
+                  <td>{task.due_date || "—"}</td>
                 </tr>
               ))}
-              {sortedTasks.length === 0 && <tr><td colSpan={6} style={{ ...td, textAlign: "center", color: "#aaa", padding: "30px 0" }}>{t(lang, "noMatch")}</td></tr>}
+              {sortedTasks.length === 0 && <tr><td className="empty" colSpan={6}>{t(lang, "noMatch")}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -239,6 +242,9 @@ export default function BoardPage() {
       )}
       {membersOpen && (
         <MembersModal workspaceId={workspaceId} userId={userId} lang={lang} onClose={() => setMembersOpen(false)} onChanged={loadMembers} />
+      )}
+      {importOpen && (
+        <ExcelImportModal workspaceId={workspaceId} templateId={templateId} lang={lang} members={members} onClose={() => setImportOpen(false)} onChanged={loadTasks} />
       )}
     </main>
   );
@@ -278,57 +284,56 @@ function TaskModal({ mode, task, template, lang, userId, workspaceId, onClose, o
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "grid", placeItems: "center", zIndex: 50 }} onClick={onClose}>
-      <div style={{ width: 520, maxWidth: "92vw", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: 16, padding: 20 }} onClick={(e) => e.stopPropagation()}>
-        <h2 style={{ margin: "0 0 16px", fontSize: 18 }}>{mode === "create" ? t(lang, "newTaskTitle") : t(lang, "taskDetail")}</h2>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2 className="modal-title">{mode === "create" ? t(lang, "newTaskTitle") : t(lang, "taskDetail")}</h2>
 
         {statuses.length > 1 && (
-          <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+          <div className="status-picker">
             {statuses.map((s, i) => (
-              <button key={i} onClick={() => setStatusIndex(i)} style={{ ...chip, ...(i === statusIndex ? { background: "#2f6feb", color: "#fff", borderColor: "#2f6feb" } : {}) }}>{s}</button>
+              <button key={i} className="step" data-on={i === statusIndex} onClick={() => setStatusIndex(i)}>{s}</button>
             ))}
           </div>
         )}
 
-        <div style={{ display: "grid", gap: 12 }}>
-          <label style={labelStyle}>{t(lang, "title")}<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t(lang, "search")} style={inputStyle} /></label>
-          <label style={labelStyle}>{t(lang, "desc")}<textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} style={inputStyle} /></label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <label style={labelStyle}>{t(lang, "priority")}
-              <select value={priority} onChange={(e) => setPriority(e.target.value)} style={inputStyle}>
+        <div className="form-grid">
+          <label className="field">
+            <span className="field-label">{t(lang, "title")}</span>
+            <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t(lang, "search")} />
+          </label>
+          <label className="field">
+            <span className="field-label">{t(lang, "desc")}</span>
+            <textarea className="input" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+          </label>
+          <div className="form-2col">
+            <label className="field">
+              <span className="field-label">{t(lang, "priority")}</span>
+              <select className="input" value={priority} onChange={(e) => setPriority(e.target.value)}>
                 <option value="urgent">{t(lang, "urgent")}</option><option value="high">{t(lang, "high")}</option><option value="normal">{t(lang, "normal")}</option>
               </select>
             </label>
-            <label style={labelStyle}>{t(lang, "type")}
-              <select value={category} onChange={(e) => setCategory(e.target.value)} style={inputStyle}>
+            <label className="field">
+              <span className="field-label">{t(lang, "type")}</span>
+              <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
                 {(template?.categories || []).map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </label>
           </div>
-          <label style={labelStyle}>{t(lang, "dueDate")}<input type="date" value={due} onChange={(e) => setDue(e.target.value)} style={inputStyle} /></label>
-          {error && <p style={{ color: "#dc2626", fontSize: 13, margin: 0 }}>{error}</p>}
+          <label className="field">
+            <span className="field-label">{t(lang, "dueDate")}</span>
+            <input className="input" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+          </label>
+          {error && <p className="error-text">{error}</p>}
         </div>
 
-        <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-          {mode === "edit" && <button onClick={del} style={{ ...btnSecondary, color: "#dc2626" }}>{t(lang, "del")}</button>}
-          <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
-            <button onClick={onClose} style={btnSecondary}>{t(lang, "cancel")}</button>
-            <button onClick={save} disabled={saving} style={btnPrimary}>{saving ? t(lang, "saving") : t(lang, "save")}</button>
+        <div className="modal-actions">
+          {mode === "edit" && <button className="btn btn-danger" onClick={del}>{t(lang, "del")}</button>}
+          <div className="spacer">
+            <button className="btn btn-secondary" onClick={onClose}>{t(lang, "cancel")}</button>
+            <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? t(lang, "saving") : t(lang, "save")}</button>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
-const selStyle: CSSProperties = { padding: "8px 10px", border: "1px solid #e5e5e5", borderRadius: 8, fontSize: 14, background: "#fff" };
-const chip: CSSProperties = { padding: "6px 12px", borderRadius: 999, border: "1px solid #e5e5e5", background: "#fff", fontSize: 13, cursor: "pointer" };
-const chipOn: CSSProperties = { background: "#111", color: "#fff", borderColor: "#111" };
-const viewBtn: CSSProperties = { padding: "6px 14px", borderRadius: 6, border: "none", background: "transparent", color: "#888", fontSize: 14, cursor: "pointer" };
-const btnPrimary: CSSProperties = { padding: "9px 16px", background: "#2f6feb", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, cursor: "pointer" };
-const btnSecondary: CSSProperties = { padding: "9px 16px", background: "#fff", color: "#111", border: "1px solid #e5e5e5", borderRadius: 8, fontSize: 14, cursor: "pointer" };
-const labelStyle: CSSProperties = { display: "grid", gap: 6, fontSize: 13, color: "#333" };
-const inputStyle: CSSProperties = { padding: "8px 10px", border: "1px solid #e5e5e5", borderRadius: 8, fontSize: 14, width: "100%", boxSizing: "border-box" };
-const th: CSSProperties = { textAlign: "left", padding: "10px 12px", borderBottom: "1px solid #e5e5e5", fontSize: 13, color: "#666", cursor: "pointer", whiteSpace: "nowrap" };
-const td: CSSProperties = { padding: "10px 12px", fontSize: 14, borderBottom: "1px solid #f0f0f0" };
-const newPill: CSSProperties = { background: "#dc2626", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, padding: "1px 6px", marginLeft: 6 };

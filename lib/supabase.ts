@@ -22,6 +22,13 @@ export function getBrowserClient(): SupabaseClient {
   );
 }
 
+// ── 处理者解析：矩阵单元 = 成员 user_id | "ext:外部姓名" | null ─────────
+export function splitHandler(cell: string | null): { id: string | null; name: string | null } {
+  if (!cell) return { id: null, name: null };
+  if (cell.startsWith("ext:")) return { id: null, name: cell.slice(4) };
+  return { id: cell, name: null };
+}
+
 // ── 处理者推导：handler_matrix[类型下标][状态下标]，空则回退 null ───────
 export function handlerFor(template: any, category: string, statusIndex: number): string | null {
   const categories: string[] = template.categories || [];
@@ -45,11 +52,13 @@ export async function applyStatusTransition(
     throw new Error(`invalid status index: ${newIndex}`);
   }
 
-  const handler = handlerFor(template, task.category, newIndex) || task.publisher_id;
+  const cell = handlerFor(template, task.category, newIndex);
+  let { id, name } = splitHandler(cell);
+  if (!id && !name) id = task.publisher_id; // 矩阵未指派时回退给发布者
 
   const { error: upd } = await db
     .from("tasks")
-    .update({ status_index: newIndex, handler_id: handler, fresh: true })
+    .update({ status_index: newIndex, handler_id: id, handler_name: name, fresh: true })
     .eq("id", task.id);
   if (upd) throw upd;
 

@@ -12,6 +12,7 @@ const D: Record<string, Record<string, string>> = {
     loading: "加载中…", loadError: "读取工作区出错：", firstWorkspace: "先创建一个工作区 →",
     editTemplateTitle: "编辑模板", templateName: "模板名称", statusPipeline: "状态流水线（任务沿它流转）",
     handlerMatrix: "类型 × 处理者矩阵（任务到某状态时，处理者自动切换）",
+    handlerHint: "处理者可直接输入外部人员（供应商 / 承办商）姓名，或从下拉选成员",
     addStatus: "+ 添加状态", addType: "+ 添加类型",
     acceptKw: "接受关键词（邮件自动建立任务）", replyKw: "回复关键词（回复自动更新状态）",
     kwPlaceholder: "输入关键词，回车添加", noKw: "还没有关键词", saveTemplate: "保存模板",
@@ -28,6 +29,8 @@ const D: Record<string, Record<string, string>> = {
     workspaceNamePh: "工作区名称，如「我的工程队」", createAndEnter: "创建并进入", creating: "创建中…", nameRequired: "请填写工作区名称",
     inboundEmail: "收件邮箱（监控关键词）", inboundEmailHelp: "这是你的专属收件地址：把要监控的邮箱设置转发到这里，或让发件人直接发到这个地址，命中关键词的邮件会自动进收件箱。",
     inboundEmailPh: "例如 todo@你的域名", saved: "已保存", saveFailed: "保存失败", invalidEmail: "请输入有效邮箱",
+    importExcel: "导入 Excel", chooseFile: "选择 .xlsx / .xls 文件", preview: "预览", importBtn: "导入",
+    pickFileFirst: "请先选择文件", noRows: "没有解析到可导入的行", imported: "已导入", skipped: "跳过",
   },
   en: {
     board: "Board", table: "Table", all: "All", mail: "Email", excel: "Excel", manual: "Manual",
@@ -40,6 +43,7 @@ const D: Record<string, Record<string, string>> = {
     loading: "Loading…", loadError: "Error loading workspaces: ", firstWorkspace: "Create a workspace first →",
     editTemplateTitle: "Edit template", templateName: "Template name", statusPipeline: "Status pipeline",
     handlerMatrix: "Type × handler matrix (handler auto-switches on status change)",
+    handlerHint: "Type an external handler name (vendor / contractor) or pick a member from the list",
     addStatus: "+ Add status", addType: "+ Add type",
     acceptKw: "Accept keywords (emails auto-create tasks)", replyKw: "Reply keywords (replies auto-update status)",
     kwPlaceholder: "Type a keyword, press Enter", noKw: "No keywords yet", saveTemplate: "Save template",
@@ -56,6 +60,8 @@ const D: Record<string, Record<string, string>> = {
     workspaceNamePh: "Workspace name, e.g. \"My crew\"", createAndEnter: "Create & enter", creating: "Creating…", nameRequired: "Please enter a workspace name",
     inboundEmail: "Inbound email (keyword monitoring)", inboundEmailHelp: "Your dedicated inbox address: forward the mailbox you want to monitor here, or have senders email it directly. Keyword-matched emails land in your inbox.",
     inboundEmailPh: "e.g. todo@yourdomain.com", saved: "Saved", saveFailed: "Save failed", invalidEmail: "Enter a valid email",
+    importExcel: "Import Excel", chooseFile: "Choose .xlsx / .xls file", preview: "Preview", importBtn: "Import",
+    pickFileFirst: "Choose a file first", noRows: "No importable rows parsed", imported: "Imported", skipped: "skipped",
   },
 };
 

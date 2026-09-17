@@ -1,6 +1,6 @@
 "use client";
 // 编辑模板：状态流水线 + 类型×处理者矩阵 + 接受/回复关键词
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase-browser";
 import { t, type Lang } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
@@ -51,6 +51,18 @@ export default function TemplateEditor({ templateId, workspaceId, lang, onClose,
   function addCategory() { setCategories((c) => [...c, t(lang, "newType")]); setMatrix((m) => [...m, statuses.map(() => "")]); }
   function delCategory(i: number) { setCategories((c) => c.filter((_, x) => x !== i)); setMatrix((m) => m.filter((_, x) => x !== i)); }
   function setCell(ci: number, si: number, v: string) { setMatrix((m) => m.map((r, ri) => (ri === ci ? r.map((c, ci2) => (ci2 === si ? v : c)) : r))); }
+  function cellDisplay(v: string): string {
+    if (!v) return "";
+    if (v.startsWith("ext:")) return v.slice(4);
+    const m = members.find((mm) => mm.id === v);
+    return m ? m.name : v;
+  }
+  function cellEncode(name: string): string {
+    const n = name.trim();
+    if (!n) return "";
+    const m = members.find((mm) => mm.name === n);
+    return m ? m.id : `ext:${n}`;
+  }
 
   async function save() {
     if (!name.trim()) return;
@@ -70,65 +82,74 @@ export default function TemplateEditor({ templateId, workspaceId, lang, onClose,
 
   return (
     <Overlay onClick={onClose}>
-      <div style={{ ...panel, width: 680, maxHeight: "90vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
-        <h2 style={{ margin: "0 0 16px", fontSize: 18 }}>{t(lang, "editTemplateTitle")}</h2>
+      <div className="modal" style={{ width: 680 }} onClick={(e) => e.stopPropagation()}>
+        <h2 className="modal-title">{t(lang, "editTemplateTitle")}</h2>
 
-        <label style={fieldLabel}>{t(lang, "templateName")}
-          <input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
+        <label className="field">
+          <span className="field-label">{t(lang, "templateName")}</span>
+          <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
         </label>
 
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t(lang, "statusPipeline")}</div>
+        <div style={{ marginTop: 20 }}>
+          <p className="section-title">{t(lang, "statusPipeline")}</p>
           {statuses.map((s, i) => (
-            <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-              <input value={s} onChange={(e) => setStatuses((x) => x.map((v, xi) => (xi === i ? e.target.value : v)))} style={{ ...inputStyle, flex: 1 }} />
-              <button onClick={() => moveStatus(i, -1)} disabled={i === 0} style={miniBtn}>↑</button>
-              <button onClick={() => moveStatus(i, 1)} disabled={i === statuses.length - 1} style={miniBtn}>↓</button>
-              <button onClick={() => delStatus(i)} style={{ ...miniBtn, color: "#dc2626" }}>×</button>
+            <div key={i} className="status-row">
+              <input className="input" style={{ flex: 1 }} value={s} onChange={(e) => setStatuses((x) => x.map((v, xi) => (xi === i ? e.target.value : v)))} />
+              <button className="mini-btn" onClick={() => moveStatus(i, -1)} disabled={i === 0} aria-label="up">↑</button>
+              <button className="mini-btn" onClick={() => moveStatus(i, 1)} disabled={i === statuses.length - 1} aria-label="down">↓</button>
+              <button className="mini-btn danger" onClick={() => delStatus(i)} aria-label="delete">×</button>
             </div>
           ))}
-          <button onClick={addStatus} style={smallBtn}>{t(lang, "addStatus")}</button>
+          <button className="small-btn" onClick={addStatus}>{t(lang, "addStatus")}</button>
         </div>
 
         <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t(lang, "handlerMatrix")}</div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
+          <p className="section-title">{t(lang, "handlerMatrix")}</p>
+          <div className="matrix-wrap">
+            <table className="matrix">
               <thead>
                 <tr>
-                  <th style={th}>{t(lang, "type")}</th>
-                  {statuses.map((s, i) => <th key={i} style={th}>{s}</th>)}
-                  <th style={th}></th>
+                  <th>{t(lang, "type")}</th>
+                  {statuses.map((s, i) => <th key={i}>{s}</th>)}
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 {categories.map((c, ci) => (
                   <tr key={ci}>
-                    <td style={td}><input value={c} onChange={(e) => setCategories((x) => x.map((v, xi) => (xi === ci ? e.target.value : v)))} style={{ ...inputStyle, minWidth: 90 }} /></td>
+                    <td><input className="input" style={{ minWidth: 90 }} value={c} onChange={(e) => setCategories((x) => x.map((v, xi) => (xi === ci ? e.target.value : v)))} /></td>
                     {statuses.map((_, si) => (
-                      <td key={si} style={td}>
-                        <select value={matrix[ci]?.[si] || ""} onChange={(e) => setCell(ci, si, e.target.value)} style={{ ...inputStyle, minWidth: 100 }}>
-                          <option value="">{t(lang, "unassigned")}</option>
-                          {members.map((mm) => <option key={mm.id} value={mm.id}>{mm.name}</option>)}
-                        </select>
+                      <td key={si}>
+                        <input
+                          className="input"
+                          style={{ minWidth: 110 }}
+                          list="handler-options"
+                          value={cellDisplay(matrix[ci]?.[si] || "")}
+                          onChange={(e) => setCell(ci, si, cellEncode(e.target.value))}
+                          placeholder={t(lang, "unassigned")}
+                        />
                       </td>
                     ))}
-                    <td style={td}><button onClick={() => delCategory(ci)} style={{ ...miniBtn, color: "#dc2626" }}>×</button></td>
+                    <td><button className="mini-btn danger" onClick={() => delCategory(ci)} aria-label="delete">×</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <datalist id="handler-options">
+              {members.map((mm) => <option key={mm.id} value={mm.name} />)}
+            </datalist>
           </div>
-          <button onClick={addCategory} style={smallBtn}>{t(lang, "addType")}</button>
+          <button className="small-btn" onClick={addCategory}>{t(lang, "addType")}</button>
+          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>{t(lang, "handlerHint")}</p>
         </div>
 
         <KeywordEditor label={t(lang, "acceptKw")} lang={lang} items={keywords} setItems={setKeywords} input={kwInput} setInput={setKwInput} />
         <KeywordEditor label={t(lang, "replyKw")} lang={lang} items={replyKeywords} setItems={setReplyKeywords} input={rkwInput} setInput={setRkwInput} />
 
-        <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
-          <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
-            <button onClick={onClose} style={secondaryBtn}>{t(lang, "cancel")}</button>
-            <button onClick={save} disabled={saving} style={primaryBtn}>{saving ? t(lang, "saving") : t(lang, "saveTemplate")}</button>
+        <div className="modal-actions">
+          <div className="spacer">
+            <button className="btn btn-secondary" onClick={onClose}>{t(lang, "cancel")}</button>
+            <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? t(lang, "saving") : t(lang, "saveTemplate")}</button>
           </div>
         </div>
       </div>
@@ -141,31 +162,21 @@ function KeywordEditor({ label, lang, items, setItems, input, setInput }: {
 }) {
   function add() { if (input.trim() && !items.includes(input.trim())) setItems([...items, input.trim()]); setInput(""); }
   return (
-    <div style={{ marginTop: 20 }}>
-      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{label}</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+    <div className="kw-editor">
+      <p className="section-title">{label}</p>
+      <div className="kw-list">
         {items.map((k, i) => (
-          <span key={i} style={{ background: "#eef3ff", color: "#2f6feb", borderRadius: 999, padding: "3px 10px", fontSize: 13 }}>
-            {k} <button onClick={() => setItems(items.filter((_, x) => x !== i))} style={{ border: "none", background: "none", color: "inherit", cursor: "pointer" }}>×</button>
+          <span key={i} className="kw-chip">
+            {k} <button className="kw-remove" onClick={() => setItems(items.filter((_, x) => x !== i))} aria-label="remove">×</button>
           </span>
         ))}
-        {items.length === 0 && <span style={{ color: "#999", fontSize: 13 }}>{t(lang, "noKw")}</span>}
+        {items.length === 0 && <span style={{ color: "var(--muted)", fontSize: 13 }}>{t(lang, "noKw")}</span>}
       </div>
-      <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} placeholder={t(lang, "kwPlaceholder")} style={{ ...inputStyle, maxWidth: 320 }} />
+      <input className="input" style={{ maxWidth: 320 }} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} placeholder={t(lang, "kwPlaceholder")} />
     </div>
   );
 }
 
 function Overlay({ children, onClick }: { children: ReactNode; onClick?: () => void }) {
-  return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "grid", placeItems: "center", zIndex: 60, padding: 16 }} onClick={onClick}>{children}</div>;
+  return <div className="modal-overlay" style={{ zIndex: 60 }} onClick={onClick}>{children}</div>;
 }
-
-const panel: CSSProperties = { background: "#fff", borderRadius: 16, padding: 20 };
-const inputStyle: CSSProperties = { padding: "8px 10px", border: "1px solid #e5e5e5", borderRadius: 8, fontSize: 14, boxSizing: "border-box" };
-const fieldLabel: CSSProperties = { display: "grid", gap: 6, fontSize: 13, color: "#333" };
-const th: CSSProperties = { textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e5e5e5", fontSize: 12, color: "#666", whiteSpace: "nowrap" };
-const td: CSSProperties = { padding: "4px 4px", borderBottom: "1px solid #f0f0f0" };
-const miniBtn: CSSProperties = { width: 28, height: 28, border: "1px solid #e5e5e5", background: "#fff", borderRadius: 6, cursor: "pointer" };
-const smallBtn: CSSProperties = { marginTop: 8, padding: "6px 12px", border: "1px solid #e5e5e5", background: "#fff", borderRadius: 8, fontSize: 13, cursor: "pointer" };
-const primaryBtn: CSSProperties = { padding: "9px 16px", background: "#2f6feb", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, cursor: "pointer" };
-const secondaryBtn: CSSProperties = { padding: "9px 16px", background: "#fff", color: "#111", border: "1px solid #e5e5e5", borderRadius: 8, fontSize: 14, cursor: "pointer" };

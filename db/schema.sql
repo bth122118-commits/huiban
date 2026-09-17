@@ -79,7 +79,8 @@ create table if not exists public.tasks (
   source text not null default 'manual',       -- mail | excel | manual
   publisher_id uuid references auth.users(id),
   category text,                               -- 类型名（冗余，便于筛选）
-  handler_id uuid references auth.users(id),   -- 当前处理者（随状态自动切换）
+  handler_id uuid references auth.users(id),   -- 当前处理者（成员，随状态自动切换）
+  handler_name text,                           -- 外部处理者（供应商/承办商，非用户）
   priority text not null default 'normal',     -- urgent | high | normal
   due_date date,
   status_index int not null default 0,         -- 指向 template.statuses 下标
@@ -92,6 +93,8 @@ create index if not exists tasks_workspace_idx on public.tasks(workspace_id);
 create index if not exists tasks_template_status_idx on public.tasks(template_id, status_index);
 create index if not exists tasks_thread_idx on public.tasks(thread_id);
 alter table public.tasks enable row level security;
+-- 迁移：老库补 handler_name 列（幂等）
+alter table public.tasks add column if not exists handler_name text;
 
 -- ── task_events：协同记录 / 活动日志 ───────────────────────────────────
 create table if not exists public.task_events (

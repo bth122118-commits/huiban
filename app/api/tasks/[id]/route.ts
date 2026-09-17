@@ -1,4 +1,4 @@
-import { getAdminClient, handlerFor } from "@/lib/supabase";
+import { getAdminClient, handlerFor, splitHandler } from "@/lib/supabase";
 import { authorize } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
@@ -23,7 +23,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (body.category !== undefined && body.category !== task.category) {
     patch.category = body.category;
     const { data: template } = await db.from("templates").select("*").eq("id", task.template_id).maybeSingle();
-    if (template) patch.handler_id = handlerFor(template, body.category, task.status_index) || task.publisher_id || task.handler_id;
+    if (template) {
+      const cell = handlerFor(template, body.category, task.status_index);
+      let { id, name } = splitHandler(cell);
+      if (!id && !name) id = task.publisher_id;
+      patch.handler_id = id;
+      patch.handler_name = name;
+    }
   }
 
   if (!Object.keys(patch).length) return Response.json({ task });

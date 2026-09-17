@@ -1,4 +1,4 @@
-import { getAdminClient, applyStatusTransition, handlerFor } from "@/lib/supabase";
+import { getAdminClient, applyStatusTransition, handlerFor, splitHandler } from "@/lib/supabase";
 import { authorize } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
@@ -52,13 +52,15 @@ export async function POST(req: Request) {
 
     const cat = template.categories?.[0] || null;
     const statusIndex = Math.min(item.target_status_index ?? 0, (template.statuses || []).length - 1);
-    const handler = handlerFor(template, cat, statusIndex) || auth.userId;
+    const cell = handlerFor(template, cat, statusIndex);
+    let { id: hid, name: hname } = splitHandler(cell);
+    if (!hid && !hname) hid = auth.userId;
     const title = String(item.subject || "").replace(PREFIX_RE, "").trim() || item.subject;
 
     const { data: task, error } = await db.from("tasks").insert({
       workspace_id: item.workspace_id, template_id: item.template_id,
       title, description: item.body || "", source: "mail",
-      publisher_id: auth.userId, category: cat, handler_id: handler,
+      publisher_id: auth.userId, category: cat, handler_id: hid, handler_name: hname,
       priority: "normal", due_date: null, status_index: statusIndex,
       fresh: true, thread_id: item.thread_id || null,
     }).select().single();

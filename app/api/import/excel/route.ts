@@ -1,5 +1,5 @@
 import { read, utils } from "xlsx";
-import { getAdminClient, handlerFor, resolveMemberIdByName } from "@/lib/supabase";
+import { getAdminClient, handlerFor, resolveMemberIdByName, splitHandler } from "@/lib/supabase";
 import { authorize } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
@@ -62,13 +62,21 @@ export async function POST(req: Request) {
     const title = findField(row, HEADER_ALIASES.title);
     if (!title) continue;
     const handlerName = findField(row, HEADER_ALIASES.handler);
-    const handlerId = (await resolveMemberIdByName(db, workspaceId, handlerName))
-      || handlerFor(template, category, 0)
-      || auth.userId;
+    // 处理者：Excel 里是姓名 —— 命中成员转 user_id，否则当外部处理者存姓名
+    let hid: string | null = null;
+    let hname: string | null = null;
+    const memberId = await resolveMemberIdByName(db, workspaceId, handlerName);
+    if (memberId) hid = memberId;
+    else if (handlerName) hname = String(handlerName).trim();
+    if (!hid && !hname) {
+      const { id, name } = splitHandler(handlerFor(template, category, 0));
+      hid = id; hname = name;
+      if (!hid && !hname) hid = auth.userId;
+    }
     mapped.push({
       workspace_id: workspaceId, template_id: templateId,
       title: String(title).trim().slice(0, MAX_TITLE_LEN), description: "", source: "excel",
-      publisher_id: auth.userId, category, handler_id: handlerId,
+      publisher_id: auth.userId, category, handler_id: hid, handler_name: hname,
       priority: "normal", due_date: parseDate(findField(row, HEADER_ALIASES.due)),
       status_index: 0, fresh: true,
     });

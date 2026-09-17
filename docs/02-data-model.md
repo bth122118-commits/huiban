@@ -9,7 +9,7 @@ workspace 1─n membership n─1 user(auth.users)
 workspace 1─n template 1─n task 1─n task_event
 workspace 1─n inbox_item
 workspace 1─n email_account
-task n─1 user(publisher)  ·  task n─1 user(handler)
+task n─1 user(publisher)  ·  task handler = 成员(user_id) 或 外部姓名(handler_name)
 ```
 
 ## 2. 表结构
@@ -55,7 +55,7 @@ create table public.templates (
   description text default '',
   statuses jsonb not null,               -- ["待处理","进行中",…]，有序
   categories jsonb not null,             -- ["一般","水喉",…]
-  handler_matrix jsonb not null,         -- [[user_id,…],…] 维度 = categories × statuses
+  handler_matrix jsonb not null,         -- [[user_id 或 'ext:姓名',…],…] 维度 = categories × statuses
   keywords jsonb not null default '[]',        -- 接受关键词
   reply_keywords jsonb not null default '[]',  -- 回复关键词
   is_preset boolean default false,
@@ -63,7 +63,7 @@ create table public.templates (
 );
 ```
 
-> 说明：原型里处理者按「姓名」存（我/陈工/王师傅）。落库时矩阵存 `user_id`（可空）。状态转移时 `handler_id = handler_matrix[类型下标][状态下标]`。
+> 说明：原型里处理者按「姓名」存（我/陈工/王师傅）。落库时矩阵单元可以是成员 `user_id`，也可以是 `ext:姓名`（外部供应商/承办商，无账号）。状态转移时把矩阵单元拆成 `handler_id`（成员）或 `handler_name`（外部）。
 
 ### tasks
 ```sql
@@ -76,7 +76,8 @@ create table public.tasks (
   source text not null default 'manual',   -- mail | excel | manual
   publisher_id uuid references auth.users(id),
   category text,                           -- 类型名（冗余，便于筛选）
-  handler_id uuid references auth.users(id),
+  handler_id uuid references auth.users(id),   -- 当前处理者（成员）
+  handler_name text,                           -- 外部处理者（供应商/承办商，非用户）
   priority text not null default 'normal', -- urgent | high | normal
   due_date date,
   status_index int not null default 0,     -- 指向 template.statuses 下标
@@ -135,7 +136,7 @@ create table public.email_accounts (
 
 ## 3. 关键业务规则（服务端必须实现）
 
-1. **状态转移**：`task.status_index = N` 时，`task.handler_id = template.handler_matrix[category_idx][N]`，同时写一条 `task_events`，并置 `task.fresh = true`。
+1. **状态转移**：`task.status_index = N` 时，取 `template.handler_matrix[category_idx][N]`——若为成员 `user_id` 写 `handler_id`，若为 `ext:姓名` 写 `handler_name`；矩阵未指派则回退 `publisher_id`。同时写一条 `task_events`，并置 `task.fresh = true`。
 2. **NEW 标记**：任务创建或状态变动 → `fresh=true`；用户打开详情 → `fresh=false`。
 3. **回复更新**：`inbox_item(kind='reply')` 被应用 → 找到 `ref_task_id` → 改 `status_index` → 按规则 1 切换处理者 → 写事件（`note = 关键词`）。
 4. **类别删除/重排**：模板编辑后，把引用失效类别的任务 `category` 归到首个类别，`status_index` 钳制在 `statuses` 长度内。

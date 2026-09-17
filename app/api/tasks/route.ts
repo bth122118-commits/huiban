@@ -1,4 +1,4 @@
-import { getAdminClient, handlerFor } from "@/lib/supabase";
+import { getAdminClient, handlerFor, splitHandler } from "@/lib/supabase";
 import { authorize } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
@@ -60,7 +60,9 @@ export async function POST(req: Request) {
   }
 
   const cat = category || template.categories?.[0] || null;
-  const handler = handlerFor(template, cat, 0) || auth.userId;
+  const cell = handlerFor(template, cat, 0);
+  let { id: hid, name: hname } = splitHandler(cell);
+  if (!hid && !hname) hid = auth.userId;
 
   const { data, error } = await db.from("tasks").insert({
     workspace_id, template_id,
@@ -69,7 +71,8 @@ export async function POST(req: Request) {
     source: "manual",
     publisher_id: auth.userId,
     category: cat,
-    handler_id: handler,
+    handler_id: hid,
+    handler_name: hname,
     priority: priority || "normal",
     due_date: due_date || null,
     status_index: 0,

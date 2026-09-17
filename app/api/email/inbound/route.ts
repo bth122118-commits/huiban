@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { createHmac, timingSafeEqual } from "crypto";
+import { splitHandler } from "@/lib/supabase";
 
 const supabase = () =>
   createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -20,8 +21,9 @@ async function applyStatusTransition(db: ReturnType<typeof supabase>, task: any,
   const matrix: any[][] = template.handler_matrix || [];
   let ci = categories.indexOf(task.category);
   if (ci < 0) ci = 0;
-  const handler = matrix[ci]?.[newIndex] || task.publisher_id;
-  await db.from("tasks").update({ status_index: newIndex, handler_id: handler, fresh: true }).eq("id", task.id);
+  let { id: hid, name: hname } = splitHandler(matrix[ci]?.[newIndex] || null);
+  if (!hid && !hname) hid = task.publisher_id;
+  await db.from("tasks").update({ status_index: newIndex, handler_id: hid, handler_name: hname, fresh: true }).eq("id", task.id);
   await db.from("task_events").insert({ task_id: task.id, actor_id: null, from_status: statuses[task.status_index], to_status: statuses[newIndex], note });
 }
 
