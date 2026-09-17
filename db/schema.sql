@@ -252,16 +252,34 @@ begin
   from public.templates where is_preset;
 end; $$ language plpgsql security definer;
 
--- ── 建工作区：创建 workspace + owner membership + 克隆预设（原子）──────
-create or replace function public.create_workspace(p_name text, p_owner uuid) returns uuid as $$
+-- ── 建工作区：owner 取 auth.uid()，一人一个工作区（幂等）──────────────
+-- 不再信任客户端传 owner；已拥有工作区则直接返回，避免重复建。
+create or replace function public.create_workspace(p_name text) returns uuid as $$
 declare
-  v_ws uuid := gen_random_uuid();
+  v_owner uuid := auth.uid();
+  v_ws uuid;
 begin
-  insert into public.workspaces (id, name) values (v_ws, p_name);
-  insert into public.memberships (workspace_id, user_id, role) values (v_ws, p_owner, 'owner');
+  if v_owner is null then
+    raise exception 'not authenticated' using errcode = 'A0001';
+  end if;
+
+  -- 一人一个工作区：已有 owner 工作区则幂等返回
+  select m.workspace_id into v_ws
+  from public.memberships m
+  where m.user_id = v_owner and m.role = 'owner'
+  order by m.created_at asc
+  limit 1;
+
+  if v_ws is not null then
+    return v_ws;
+  end if;
+
+  v_ws := gen_random_uuid();
+  insert into public.workspaces (id, name) values (v_ws, coalesce(nullif(trim(p_name), ''), '我的工作台'));
+  insert into public.memberships (workspace_id, user_id, role) values (v_ws, v_owner, 'owner');
   perform public.clone_presets(v_ws);
   return v_ws;
-end; $$ language plpgsql security definer;
+end; $$ language plpgsql security definer set search_path = public;
 
 -- =====================================================================
 -- 状态转移规则（供服务端复用的单一事实来源，见 02-data-model.md §3）

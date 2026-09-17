@@ -1,4 +1,5 @@
 import { getAdminClient, handlerFor } from "@/lib/supabase";
+import { authorize } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
@@ -8,6 +9,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const db = getAdminClient();
   const { data: task } = await db.from("tasks").select("*").eq("id", params.id).maybeSingle();
   if (!task) return Response.json({ error: "task not found" }, { status: 404 });
+
+  const auth = await authorize(req, task.workspace_id);
+  if ("error" in auth) return auth.error;
 
   const patch: Record<string, any> = {};
   if (body.title !== undefined) patch.title = String(body.title).trim();
@@ -29,8 +33,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return Response.json({ task: data });
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const db = getAdminClient();
+  const { data: task } = await db.from("tasks").select("workspace_id").eq("id", params.id).maybeSingle();
+  if (!task) return Response.json({ error: "task not found" }, { status: 404 });
+
+  const auth = await authorize(req, task.workspace_id);
+  if ("error" in auth) return auth.error;
+
   const { error } = await db.from("tasks").delete().eq("id", params.id);
   if (error) return Response.json({ error: error.message }, { status: 500 });
   return Response.json({ ok: true });

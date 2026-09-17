@@ -3,6 +3,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase-browser";
 import { t, type Lang } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 type Member = { id: string; name: string };
 
@@ -24,7 +25,7 @@ export default function TemplateEditor({ templateId, workspaceId, lang, onClose,
   useEffect(() => {
     (async () => {
       const { data: tpl } = await supabase.from("templates").select("*").eq("id", templateId).single();
-      const m = await fetch(`/api/workspaces/${workspaceId}/members`).then((r) => r.json());
+      const m = await apiFetch(`/api/workspaces/${workspaceId}/members`).then((r) => r.json());
       setMembers(m.members || []);
       if (tpl) {
         setName(tpl.name);
@@ -57,7 +58,7 @@ export default function TemplateEditor({ templateId, workspaceId, lang, onClose,
     const ct = categories.map((c) => c.trim()).filter(Boolean);
     const hm = ct.map((_, ci) => st.map((_, si) => matrix[ci]?.[si] || null));
     setSaving(true);
-    await fetch(`/api/templates/${templateId}`, {
+    await apiFetch(`/api/templates/${templateId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name.trim(), statuses: st, categories: ct, handler_matrix: hm, keywords, reply_keywords: replyKeywords }),
     });

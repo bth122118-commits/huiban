@@ -26,7 +26,7 @@
    npx ngrok http 3000
    # 得到 https://xxxx.ngrok.io → 填 https://xxxx.ngrok.io/api/email/inbound
    ```
-4. 记下 webhook 的 signing secret（生产校验签名用，骨架已留 TODO）。
+4. 记下 webhook 的 signing secret，填到第 5 步的 `RESEND_WEBHOOK_SECRET`（入站 webhook 用它验签，未填则跳过校验）。
 
 ## 3. Next.js 工程
 
@@ -56,6 +56,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJ...   # 仅服务端，别暴露给浏览器
+
+RESEND_WEBHOOK_SECRET=whsec_...    # Resend 入站 webhook 签名（可选，未填则跳过验签）
 ```
 
 > 后端 `api/*` 用 `SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY`（admin client）；前端 `lib/supabase-browser.ts` 用 `NEXT_PUBLIC_*`（走 RLS）。
@@ -81,6 +83,4 @@ npm run dev
 
 ## 8. 已知待补（骨架级，非阻塞）
 
-- Webhook 签名校验、API 会话鉴权（各文件已留 TODO）。
 - 前端是**功能骨架**，完整交互/视觉按 `task-tracker.html` 逐块实现。
-- 生产建议把 `create_workspace` 的 owner 改成内部 `auth.uid()`，不信任客户端传参。

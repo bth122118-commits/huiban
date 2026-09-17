@@ -1,4 +1,5 @@
 import { getAdminClient, applyStatusTransition } from "@/lib/supabase";
+import { authorize } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
@@ -15,8 +16,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const { data: template } = await db.from("templates").select("*").eq("id", task.template_id).maybeSingle();
   if (!template) return Response.json({ error: "template not found" }, { status: 404 });
 
+  const auth = await authorize(req, task.workspace_id);
+  if ("error" in auth) return auth.error;
+
   await applyStatusTransition(db, task, template, newIndex, {
-    actorId: body?.actor_id ?? null,
+    actorId: auth.userId,
     note: body?.note ?? null,
   });
 

@@ -48,6 +48,8 @@ create policy "member write" on public.tasks for update
 
 模板结构字段（statuses/handler_matrix）的修改策略加 `role in ('owner','admin')` 条件。
 
+> 实现：Next.js API Routes 统一走 `lib/api-auth.ts` 的 `authorize()`——浏览器带 `Bearer` token，服务端校验 JWT 后按 `memberships` 授权（member 读/写任务，owner/admin 改模板/成员/邮箱）。
+
 ## 4. API 端点（REST，走 Next.js API Routes / 或 Supabase Edge Functions）
 
 | 方法 | 路径 | 说明 |
@@ -99,6 +101,6 @@ function handleInbound(msg) {
 
 ## 8. 安全清单
 
-- 邮件 webhook 校验签名（Mailgun/Resend 的 signing key）。
-- 上传 Excel 限制类型/大小，解析后做字段长度校验。
-- 所有查询走 RLS，禁止用 service_role 做用户态读。
+- 邮件 webhook 校验签名（已实现：`RESEND_WEBHOOK_SECRET` 的 Svix 验签）。
+- 上传 Excel 限制类型/大小、行数与字段长度（已实现，见 `app/api/import/excel/route.ts`）。
+- API 层逐请求鉴权（已实现：`lib/api-auth.ts`——Bearer token 校验 + `memberships` 授权；服务端用 service_role 查询，但每个路由都先过授权闸门）。

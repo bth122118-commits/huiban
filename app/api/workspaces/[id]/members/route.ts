@@ -1,9 +1,13 @@
 import { getAdminClient } from "@/lib/supabase";
+import { authorize, ADMIN_ROLES } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 // 工作区成员列表（供处理者矩阵下拉选择）
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: { id: string } }) {
+  const auth = await authorize(req, params.id);
+  if ("error" in auth) return auth.error;
+
   const db = getAdminClient();
   const { data: mems } = await db.from("memberships").select("user_id, role").eq("workspace_id", params.id);
   const ids = (mems || []).map((m) => m.user_id);
@@ -21,6 +25,9 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
 // 添加成员（按邮箱；对方需先在系统注册过）
 export async function POST(req: Request, { params }: { params: { id: string } }) {
+  const auth = await authorize(req, params.id, ADMIN_ROLES);
+  if ("error" in auth) return auth.error;
+
   const { email } = await req.json();
   const db = getAdminClient();
   const { data } = await db.auth.admin.listUsers();

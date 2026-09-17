@@ -1,4 +1,5 @@
 import { getAdminClient } from "@/lib/supabase";
+import { authorize, ADMIN_ROLES } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
@@ -8,6 +9,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const db = getAdminClient();
   const { data: tpl } = await db.from("templates").select("*").eq("id", params.id).maybeSingle();
   if (!tpl) return Response.json({ error: "template not found" }, { status: 404 });
+
+  const auth = await authorize(req, tpl.workspace_id || "", ADMIN_ROLES);
+  if ("error" in auth) return auth.error;
 
   const patch: Record<string, any> = {};
   if (body.name !== undefined) patch.name = body.name;

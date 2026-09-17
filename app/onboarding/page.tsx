@@ -1,8 +1,8 @@
 "use client";
 // =====================================================================
-// 汇办 Huiban · 建工作区
-// 调 db/schema.sql 里的 create_workspace RPC（原子：建 workspace + owner 成员 + 克隆预设模板）
-// 生产建议：把 create_workspace 改成内部用 auth.uid() 取 owner，避免信任客户端传 owner。
+// 汇办 Huiban · 建工作区（一人一个工作区）
+// 调 db/schema.sql 里的 create_workspace RPC（owner 取 auth.uid()）
+// 样式对齐 task-tracker.html 的 Neutral Modern（令牌见 app/globals.css）
 // =====================================================================
 
 import { useEffect, useState, type FormEvent } from "react";
@@ -29,10 +29,7 @@ export default function OnboardingPage() {
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) return router.push("/login");
 
-    const { data: wsId, error } = await supabase.rpc("create_workspace", {
-      p_name: name.trim(),
-      p_owner: user.user.id,
-    });
+    const { data: wsId, error } = await supabase.rpc("create_workspace", { p_name: name.trim() });
     setLoading(false);
     if (error) return setError(error.message);
     localStorage.setItem("huiban.workspace", String(wsId));
@@ -40,21 +37,29 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main style={{ maxWidth: 360, margin: "10vh auto", padding: 24 }}>
-      <h1>创建工作区</h1>
-      <p style={{ color: "#666" }}>一个工作区 = 一个团队，创建后会自动带上 5 个预设模板。</p>
-      <form onSubmit={create} style={{ display: "grid", gap: 12 }}>
-        <input
-          placeholder="工作区名称，如「我的工程队」" value={name}
-          onChange={(e) => setName(e.target.value)}
-          style={{ padding: "10px 12px", border: "1px solid #e5e5e5", borderRadius: 8 }}
-        />
-        {error && <p style={{ color: "#dc2626", fontSize: 13 }}>{error}</p>}
-        <button type="submit" disabled={loading}
-          style={{ padding: "10px 16px", background: "#2f6feb", color: "#fff", border: "none", borderRadius: 8 }}>
-          {loading ? "创建中…" : "创建并进入"}
-        </button>
-      </form>
+    <main className="auth-shell">
+      <div className="auth-card">
+        <h1 className="auth-brand">汇办</h1>
+        <p className="auth-tagline">一个工作区 = 一个团队。创建后会自动带上预设模板，马上就能用。</p>
+
+        <h2 className="auth-title">创建工作区</h2>
+        <form onSubmit={create} className="auth-form">
+          <label className="auth-field">
+            <span className="auth-label">工作区名称</span>
+            <input
+              className="auth-input"
+              autoFocus
+              placeholder="如「我的工程队」"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
+          {error && <p className="auth-error">{error}</p>}
+          <button className="auth-btn" type="submit" disabled={loading}>
+            {loading ? "创建中…" : "创建并进入"}
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

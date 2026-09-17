@@ -26,6 +26,8 @@ const D: Record<string, Record<string, string>> = {
     noAccount: "没有账号？注册", haveAccount: "已有账号？登录", createAccount: "创建账号", wait: "请稍候…",
     createWorkspace: "创建工作区", workspaceDesc: "一个工作区 = 一个团队，创建后会自动带上预设模板。",
     workspaceNamePh: "工作区名称，如「我的工程队」", createAndEnter: "创建并进入", creating: "创建中…", nameRequired: "请填写工作区名称",
+    inboundEmail: "收件邮箱（监控关键词）", inboundEmailHelp: "这是你的专属收件地址：把要监控的邮箱设置转发到这里，或让发件人直接发到这个地址，命中关键词的邮件会自动进收件箱。",
+    inboundEmailPh: "例如 todo@你的域名", saved: "已保存", saveFailed: "保存失败", invalidEmail: "请输入有效邮箱",
   },
   en: {
     board: "Board", table: "Table", all: "All", mail: "Email", excel: "Excel", manual: "Manual",
@@ -52,6 +54,8 @@ const D: Record<string, Record<string, string>> = {
     noAccount: "No account? Sign up", haveAccount: "Have an account? Sign in", createAccount: "Create account", wait: "Please wait…",
     createWorkspace: "Create workspace", workspaceDesc: "A workspace = a team. Preset templates are added automatically.",
     workspaceNamePh: "Workspace name, e.g. \"My crew\"", createAndEnter: "Create & enter", creating: "Creating…", nameRequired: "Please enter a workspace name",
+    inboundEmail: "Inbound email (keyword monitoring)", inboundEmailHelp: "Your dedicated inbox address: forward the mailbox you want to monitor here, or have senders email it directly. Keyword-matched emails land in your inbox.",
+    inboundEmailPh: "e.g. todo@yourdomain.com", saved: "Saved", saveFailed: "Save failed", invalidEmail: "Enter a valid email",
   },
 };
 

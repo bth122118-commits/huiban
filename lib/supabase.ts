@@ -62,9 +62,9 @@ export async function applyStatusTransition(
   });
 }
 
-// ── 建工作区：调 schema.sql 里的 create_workspace RPC（原子）────────────
-export async function createWorkspace(db: SupabaseClient, name: string, ownerId: string): Promise<string> {
-  const { data, error } = await db.rpc("create_workspace", { p_name: name, p_owner: ownerId });
+// ── 建工作区：调 schema.sql 里的 create_workspace RPC（owner 取 auth.uid()）──
+export async function createWorkspace(db: SupabaseClient, name: string): Promise<string> {
+  const { data, error } = await db.rpc("create_workspace", { p_name: name });
   if (error) throw error;
   return data as string;
 }

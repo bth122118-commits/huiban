@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabase-browser";
 import { t, type Lang } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 type Member = { id: string; name: string; role: string };
 
@@ -15,7 +16,7 @@ export default function MembersModal({ workspaceId, userId, lang, onClose, onCha
   const [msg, setMsg] = useState("");
 
   const load = useCallback(async () => {
-    const r = await fetch(`/api/workspaces/${workspaceId}/members`).then((x) => x.json());
+    const r = await apiFetch(`/api/workspaces/${workspaceId}/members`).then((x) => x.json());
     setMembers(r.members || []);
     const me = (r.members || []).find((m: Member) => m.id === userId);
     if (me) setMyName(me.name);
@@ -25,7 +26,7 @@ export default function MembersModal({ workspaceId, userId, lang, onClose, onCha
 
   async function add() {
     setError(""); setMsg("");
-    const r = await fetch(`/api/workspaces/${workspaceId}/members`, {
+    const r = await apiFetch(`/api/workspaces/${workspaceId}/members`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }),
     });
     const d = await r.json();

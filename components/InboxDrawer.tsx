@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabase-browser";
 import { t, type Lang } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 type Draft = {
   id: string; kind: string; from_email: string; subject: string; matched_keyword: string;
@@ -17,9 +18,14 @@ export default function InboxDrawer({ workspaceId, userId, templateId, lang, tas
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [replies, setReplies] = useState<Draft[]>([]);
   const [loading, setLoading] = useState(true);
+  const [boundEmail, setBoundEmail] = useState("");
+  const [emailInput, setEmailInput] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailMsg, setEmailMsg] = useState("");
+  const [emailErr, setEmailErr] = useState(false);
 
   const load = useCallback(async () => {
-    const r = await fetch(`/api/inbox?workspace_id=${workspaceId}`).then((x) => x.json());
+    const r = await apiFetch(`/api/inbox?workspace_id=${workspaceId}`).then((x) => x.json());
     setDrafts(r.drafts || []);
     setReplies(r.replies || []);
     setLoading(false);
@@ -27,8 +33,25 @@ export default function InboxDrawer({ workspaceId, userId, templateId, lang, tas
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    apiFetch(`/api/workspaces/${workspaceId}/email`).then((x) => x.json()).then((r) => {
+      const v = r.account?.email || "";
+      setBoundEmail(v); setEmailInput(v);
+    }).catch(() => {});
+  }, [workspaceId]);
+
+  async function saveEmail() {
+    const v = emailInput.trim();
+    if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { setEmailMsg(t(lang, "invalidEmail")); setEmailErr(true); return; }
+    setSavingEmail(true); setEmailMsg("");
+    const r = await apiFetch(`/api/workspaces/${workspaceId}/email`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: v }) });
+    setSavingEmail(false);
+    if (r.ok) { setBoundEmail(v); setEmailMsg(t(lang, "saved")); setEmailErr(false); }
+    else { const j = await r.json().catch(() => ({})); setEmailMsg(j.error || t(lang, "saveFailed")); setEmailErr(true); }
+  }
+
   async function act(id: string, action: "apply" | "ignore") {
-    await fetch("/api/inbox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, action, publisher_id: userId }) });
+    await apiFetch("/api/inbox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, action, publisher_id: userId }) });
     onChanged();
     load();
   }
@@ -53,6 +76,18 @@ export default function InboxDrawer({ workspaceId, userId, templateId, lang, tas
             <button onClick={onClose} style={{ border: "none", background: "none", fontSize: 20, cursor: "pointer", color: "#666" }}>×</button>
           </div>
         </header>
+
+        <section style={{ padding: "12px 16px", borderBottom: "1px solid #e5e5e5", background: "#fafafa" }}>
+          <label style={{ fontSize: 12, color: "#666", display: "grid", gap: 6 }}>
+            {t(lang, "inboundEmail")}
+            <div style={{ display: "flex", gap: 8 }}>
+              <input value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder={t(lang, "inboundEmailPh")} style={inputStyle} />
+              <button onClick={saveEmail} disabled={savingEmail} style={primary}>{savingEmail ? t(lang, "saving") : t(lang, "save")}</button>
+            </div>
+          </label>
+          <p style={{ fontSize: 12, color: "#888", margin: "8px 0 0" }}>{t(lang, "inboundEmailHelp")}</p>
+          {emailMsg && <p style={{ fontSize: 12, color: emailErr ? "#dc2626" : "#17a34a", margin: "6px 0 0" }}>{emailMsg}</p>}
+        </section>
 
         <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
           {loading ? <p style={{ color: "#999" }}>{t(lang, "loading")}</p> : (
@@ -105,3 +140,4 @@ const empty: CSSProperties = { color: "#999", fontSize: 13, padding: "8px 0" };
 const card: CSSProperties = { border: "1px solid #e5e5e5", borderRadius: 10, padding: 12, marginBottom: 10, background: "#fafafa" };
 const primary: CSSProperties = { padding: "6px 12px", background: "#2f6feb", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" };
 const secondary: CSSProperties = { padding: "6px 12px", background: "#fff", color: "#111", border: "1px solid #e5e5e5", borderRadius: 6, fontSize: 13, cursor: "pointer" };
+const inputStyle: CSSProperties = { padding: "8px 10px", border: "1px solid #e5e5e5", borderRadius: 8, fontSize: 14, flex: 1, minWidth: 0 };

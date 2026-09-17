@@ -1,4 +1,5 @@
 import { getAdminClient, handlerFor } from "@/lib/supabase";
+import { authorize } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,9 @@ export async function GET(req: Request) {
   const u = new URL(req.url).searchParams;
   const workspaceId = u.get("workspace_id");
   if (!workspaceId) return Response.json({ error: "missing workspace_id" }, { status: 400 });
+
+  const auth = await authorize(req, workspaceId);
+  if ("error" in auth) return auth.error;
 
   const db = getAdminClient();
   let query = db.from("tasks").select("*").eq("workspace_id", workspaceId);
@@ -39,25 +43,31 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { workspace_id, template_id, title, description, publisher_id, category, priority, due_date } = body || {};
+  const { workspace_id, template_id, title, description, category, priority, due_date } = body || {};
 
   if (!workspace_id || !template_id || !String(title || "").trim()) {
     return Response.json({ error: "missing workspace_id / template_id / title" }, { status: 400 });
   }
 
+  const auth = await authorize(req, workspace_id);
+  if ("error" in auth) return auth.error;
+
   const db = getAdminClient();
   const { data: template } = await db.from("templates").select("*").eq("id", template_id).maybeSingle();
   if (!template) return Response.json({ error: "template not found" }, { status: 404 });
+  if (template.workspace_id && template.workspace_id !== workspace_id) {
+    return Response.json({ error: "template not in workspace" }, { status: 403 });
+  }
 
   const cat = category || template.categories?.[0] || null;
-  const handler = handlerFor(template, cat, 0) || publisher_id || null;
+  const handler = handlerFor(template, cat, 0) || auth.userId;
 
   const { data, error } = await db.from("tasks").insert({
     workspace_id, template_id,
     title: String(title).trim(),
     description: description || "",
     source: "manual",
-    publisher_id: publisher_id || null,
+    publisher_id: auth.userId,
     category: cat,
     handler_id: handler,
     priority: priority || "normal",

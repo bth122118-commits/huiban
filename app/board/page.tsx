@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabase-browser";
 import { t, type Lang } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 import TemplateEditor from "@/components/TemplateEditor";
 import InboxDrawer from "@/components/InboxDrawer";
 import MembersModal from "@/components/MembersModal";
@@ -13,14 +14,12 @@ type Task = {
   status_index: number; priority: string; due_date: string | null;
   source: string; category: string; handler_id: string | null; publisher_id: string | null; fresh: boolean;
 };
-type Workspace = { id: string; name: string };
-
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, normal: 2 };
 const SOURCES = ["all", "mail", "excel", "manual"] as const;
 
 export default function BoardPage() {
   const [userId, setUserId] = useState("");
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceId, setWorkspaceId] = useState("");
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templateId, setTemplateId] = useState("");
@@ -43,10 +42,17 @@ export default function BoardPage() {
       const { data } = await supabase.auth.getUser();
       if (!data.user) { location.href = "/login"; return; }
       setUserId(data.user.id);
-      const { data: ws, error: wsErr } = await supabase.from("workspaces").select("id, name");
-      if (wsErr) { setLoadError(wsErr.message); setReady(true); return; }
-      const saved = typeof window !== "undefined" ? (localStorage.getItem("huiban.workspace") || "") : "";
-      if (ws?.length) { setWorkspaces(ws); setWorkspaceId(saved || ws[0].id); }
+      // 一人一个工作台：取「我」owner 的工作台（联机协作进别人的工作台时再扩展）
+      const { data: ms, error: msErr } = await supabase.from("memberships").select("workspace_id, role").eq("user_id", data.user.id);
+      if (msErr) { setLoadError(msErr.message); setReady(true); return; }
+      const mine = (ms || []).find((m) => m.role === "owner") || (ms || [])[0];
+      if (!mine) { setReady(true); return; }
+      const { data: ws } = await supabase.from("workspaces").select("id, name").eq("id", mine.workspace_id).maybeSingle();
+      if (ws) {
+        setWorkspaceId(ws.id);
+        setWorkspaceName(ws.name);
+        localStorage.setItem("huiban.workspace", ws.id);
+      }
       setReady(true);
     })();
   }, []);
@@ -75,7 +81,7 @@ export default function BoardPage() {
 
   const loadMembers = useCallback(async () => {
     if (!workspaceId) return;
-    const r = await fetch(`/api/workspaces/${workspaceId}/members`).then((x) => x.json());
+    const r = await apiFetch(`/api/workspaces/${workspaceId}/members`).then((x) => x.json());
     setMembers(Object.fromEntries((r.members || []).map((m: any) => [m.id, m.name])));
   }, [workspaceId]);
   useEffect(() => { loadMembers(); }, [loadMembers]);
@@ -110,25 +116,23 @@ export default function BoardPage() {
   function arrow(key: string) { return sort.key === key ? (sort.dir === 1 ? " ↑" : " ↓") : ""; }
 
   async function changeStatus(taskId: string, statusIndex: number) {
-    await fetch(`/api/tasks/${taskId}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status_index: statusIndex, actor_id: userId }) });
+    await apiFetch(`/api/tasks/${taskId}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status_index: statusIndex, actor_id: userId }) });
     loadTasks();
   }
 
   function openEdit(task: Task) {
-    if (task.fresh) fetch(`/api/tasks/${task.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fresh: false }) });
+    if (task.fresh) apiFetch(`/api/tasks/${task.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fresh: false }) });
     setModal({ mode: "edit", taskId: task.id });
   }
 
   if (!ready) return <p style={{ padding: 24 }}>{t(lang, "loading")}</p>;
   if (loadError) return <p style={{ padding: 24, color: "#dc2626" }}>{t(lang, "loadError")}{loadError}</p>;
-  if (!workspaces.length) return <p style={{ padding: 24 }}><a href="/onboarding">{t(lang, "firstWorkspace")}</a></p>;
+  if (!workspaceId) return <p style={{ padding: 24 }}><a href="/onboarding">{t(lang, "firstWorkspace")}</a></p>;
 
   return (
     <main style={{ padding: 24 }}>
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <select value={workspaceId} onChange={(e) => setWorkspaceId(e.target.value)} style={selStyle}>
-          {workspaces.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-        </select>
+        <span style={{ fontWeight: 600, fontSize: 15, padding: "8px 2px" }}>{workspaceName}</span>
         <select value={templateId} onChange={(e) => setTemplateId(e.target.value)} style={selStyle}>
           {templates.map((tm) => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
         </select>
@@ -257,19 +261,19 @@ function TaskModal({ mode, task, template, lang, userId, workspaceId, onClose, o
     if (!title.trim()) { setError(t(lang, "titleRequired")); return; }
     setError(""); setSaving(true);
     if (mode === "create") {
-      const r = await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspace_id: workspaceId, template_id: template?.id, title, description, priority, category, due_date: due || null, publisher_id: userId }) });
+      const r = await apiFetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspace_id: workspaceId, template_id: template?.id, title, description, priority, category, due_date: due || null, publisher_id: userId }) });
       if (!r.ok) { setError("ERR"); setSaving(false); return; }
     } else if (task) {
-      const r = await fetch(`/api/tasks/${task.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, description, priority, category, due_date: due || null }) });
+      const r = await apiFetch(`/api/tasks/${task.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, description, priority, category, due_date: due || null }) });
       if (!r.ok) { setError("ERR"); setSaving(false); return; }
-      if (statusIndex !== task.status_index) await fetch(`/api/tasks/${task.id}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status_index: statusIndex, actor_id: userId }) });
+      if (statusIndex !== task.status_index) await apiFetch(`/api/tasks/${task.id}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status_index: statusIndex, actor_id: userId }) });
     }
     setSaving(false); onChanged(); onClose();
   }
 
   async function del() {
     if (!task) return;
-    await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
+    await apiFetch(`/api/tasks/${task.id}`, { method: "DELETE" });
     onChanged(); onClose();
   }
 
