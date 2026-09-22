@@ -31,6 +31,7 @@ const D: Record<string, Record<string, string>> = {
     inboundEmailPh: "例如 todo@你的域名", saved: "已保存", saveFailed: "保存失败", invalidEmail: "请输入有效邮箱",
     importExcel: "导入 Excel", chooseFile: "选择 .xlsx / .xls 文件", preview: "预览", importBtn: "导入",
     pickFileFirst: "请先选择文件", noRows: "没有解析到可导入的行", imported: "已导入", skipped: "跳过",
+    connectEmail: "连接邮箱", connectedEmail: "已连接邮箱", disconnect: "断开连接", connectEmailHelp: "连接你的 Gmail / Outlook，命中关键词的邮件会自动进收件箱。",
   },
   en: {
     board: "Board", table: "Table", all: "All", mail: "Email", excel: "Excel", manual: "Manual",
@@ -62,6 +63,7 @@ const D: Record<string, Record<string, string>> = {
     inboundEmailPh: "e.g. todo@yourdomain.com", saved: "Saved", saveFailed: "Save failed", invalidEmail: "Enter a valid email",
     importExcel: "Import Excel", chooseFile: "Choose .xlsx / .xls file", preview: "Preview", importBtn: "Import",
     pickFileFirst: "Choose a file first", noRows: "No importable rows parsed", imported: "Imported", skipped: "skipped",
+    connectEmail: "Connect email", connectedEmail: "Connected email", disconnect: "Disconnect", connectEmailHelp: "Connect Gmail / Outlook; keyword-matched emails land in your inbox.",
   },
 };
 

@@ -1,31 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { createHmac, timingSafeEqual } from "crypto";
-import { splitHandler } from "@/lib/supabase";
+import { ingestMessage } from "@/lib/email-ingest";
 
 const supabase = () =>
   createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 export const runtime = "nodejs";
-
-function matchKeyword(text: string, keywords: string[]): string | null {
-  const t = text.toLowerCase();
-  return keywords.find((k) => t.includes(String(k).toLowerCase())) || null;
-}
-function isReply(headers: Record<string, string>, subject: string): boolean {
-  if (headers["in-reply-to"] || headers["references"]) return true;
-  return /^(re:|回复：|回复:)/i.test(subject);
-}
-async function applyStatusTransition(db: ReturnType<typeof supabase>, task: any, template: any, newIndex: number, note: string) {
-  const statuses: string[] = template.statuses || [];
-  const categories: string[] = template.categories || [];
-  const matrix: any[][] = template.handler_matrix || [];
-  let ci = categories.indexOf(task.category);
-  if (ci < 0) ci = 0;
-  let { id: hid, name: hname } = splitHandler(matrix[ci]?.[newIndex] || null);
-  if (!hid && !hname) hid = task.publisher_id;
-  await db.from("tasks").update({ status_index: newIndex, handler_id: hid, handler_name: hname, fresh: true }).eq("id", task.id);
-  await db.from("task_events").insert({ task_id: task.id, actor_id: null, from_status: statuses[task.status_index], to_status: statuses[newIndex], note });
-}
 
 // Resend 入站 webhook 用 Svix 签名：svix-id / svix-timestamp / svix-signature。
 // 未配置 RESEND_WEBHOOK_SECRET 时跳过校验（本地开发）；生产必须配置。
@@ -78,64 +58,26 @@ export async function POST(req: Request) {
   (data.headers || []).forEach((h: { name: string; value: string }) => {
     headers[String(h.name).toLowerCase()] = h.value;
   });
-  const messageId = headers["message-id"] || null;
-  const inReplyTo = headers["in-reply-to"] || null;
-  const references = headers["references"] || null;
 
   const db = supabase();
 
-  const { data: account } = await db.from("email_accounts").select("workspace_id, template_id").eq("email", recipient).maybeSingle();
+  // 归属工作区：Resend 转发按「收件地址」匹配；将来统一邮箱 API 按 provider_account_id。
+  const accountId = payload.account_id || data.account_id || null;
+  let accountQuery = db.from("email_accounts").select("workspace_id, template_id");
+  accountQuery = accountId
+    ? accountQuery.eq("provider_account_id", accountId)
+    : accountQuery.eq("email", recipient);
+  const { data: account } = await accountQuery.maybeSingle();
   if (!account) return Response.json({ ok: true, skipped: "no_account" });
-  const { workspace_id, template_id } = account;
 
-  let templates: any[] = [];
-  if (template_id) {
-    const { data: t } = await db.from("templates").select("*").eq("id", template_id).maybeSingle();
-    templates = t ? [t] : [];
-  } else {
-    const { data: ts } = await db.from("templates").select("*").eq("workspace_id", workspace_id);
-    templates = ts || [];
-  }
+  const result = await ingestMessage(db, account, {
+    from,
+    subject,
+    body,
+    messageId: headers["message-id"] || null,
+    inReplyTo: headers["in-reply-to"] || null,
+    references: headers["references"] || null,
+  });
 
-  const text = `${subject}\n${body}`;
-  const reply = isReply(headers, subject);
-  const refs = [inReplyTo, ...(references ? references.split(/[\s,]+/) : [])].filter(Boolean);
-
-  for (const tpl of templates) {
-    if (reply) {
-      const kw = matchKeyword(text, tpl.reply_keywords || []);
-      if (!kw) continue;
-
-      let task = null;
-      for (const r of refs) {
-        const { data: found } = await db.from("tasks").select("*").eq("thread_id", r).eq("template_id", tpl.id).maybeSingle();
-        if (found) { task = found; break; }
-      }
-      if (!task) {
-        const bare = subject.replace(/^(re:|回复：|回复:)/i, "").trim();
-        const { data: found } = await db.from("tasks").select("*").ilike("title", `%${bare}%`).eq("template_id", tpl.id).limit(1);
-        task = found?.[0] || null;
-      }
-      if (!task) continue;
-
-      const statuses: string[] = tpl.statuses || [];
-      const target = Math.min(task.status_index + 1, statuses.length - 1);
-      await applyStatusTransition(db, task, tpl, target, `回复邮件「${kw}」`);
-      await db.from("inbox_items").insert({ workspace_id, template_id: tpl.id, kind: "reply", from_email: from, subject, body, matched_keyword: kw, ref_task_id: task.id, target_status_index: target, thread_id: inReplyTo || references || null, status: "applied" });
-      return Response.json({ ok: true, action: "reply_applied", task_id: task.id, status: statuses[target] });
-    }
-
-    const kw = matchKeyword(text, tpl.keywords || []);
-    if (!kw) continue;
-
-    if (inReplyTo || references) {
-      const { data: dup } = await db.from("inbox_items").select("id").eq("thread_id", inReplyTo || references).eq("status", "pending").maybeSingle();
-      if (dup) return Response.json({ ok: true, skipped: "duplicate" });
-    }
-
-    await db.from("inbox_items").insert({ workspace_id, template_id: tpl.id, kind: "create", from_email: from, subject, body, matched_keyword: kw, thread_id: messageId || null, status: "pending" });
-    return Response.json({ ok: true, action: "draft_created", keyword: kw });
-  }
-
-  return Response.json({ ok: true, skipped: "no_match" });
+  return Response.json(result);
 }

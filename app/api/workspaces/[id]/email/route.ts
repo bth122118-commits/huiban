@@ -9,7 +9,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   if ("error" in auth) return auth.error;
 
   const db = getAdminClient();
-  const { data } = await db.from("email_accounts").select("email").eq("workspace_id", params.id).maybeSingle();
+  const { data } = await db.from("email_accounts").select("email, provider, provider_account_id, connection").eq("workspace_id", params.id).maybeSingle();
   return Response.json({ account: data || null });
 }
 
@@ -31,4 +31,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     await db.from("email_accounts").insert({ workspace_id: params.id, email, provider: "forward" });
   }
   return Response.json({ ok: true, email });
+}
+
+// 断开连接（删除绑定）
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  const auth = await authorize(req, params.id, ADMIN_ROLES);
+  if ("error" in auth) return auth.error;
+
+  const db = getAdminClient();
+  await db.from("email_accounts").delete().eq("workspace_id", params.id);
+  return Response.json({ ok: true });
 }

@@ -18,9 +18,9 @@ export default function InboxDrawer({ workspaceId, userId, templateId, lang, tas
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [replies, setReplies] = useState<Draft[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState(false);
   const [boundEmail, setBoundEmail] = useState("");
-  const [emailInput, setEmailInput] = useState("");
-  const [savingEmail, setSavingEmail] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [emailMsg, setEmailMsg] = useState("");
   const [emailErr, setEmailErr] = useState(false);
 
@@ -35,19 +35,26 @@ export default function InboxDrawer({ workspaceId, userId, templateId, lang, tas
 
   useEffect(() => {
     apiFetch(`/api/workspaces/${workspaceId}/email`).then((x) => x.json()).then((r) => {
-      const v = r.account?.email || "";
-      setBoundEmail(v); setEmailInput(v);
+      const a = r.account;
+      setBoundEmail(a?.email || "");
+      setConnected(!!(a?.provider_account_id || a?.connection));
     }).catch(() => {});
   }, [workspaceId]);
 
-  async function saveEmail() {
-    const v = emailInput.trim();
-    if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { setEmailMsg(t(lang, "invalidEmail")); setEmailErr(true); return; }
-    setSavingEmail(true); setEmailMsg("");
-    const r = await apiFetch(`/api/workspaces/${workspaceId}/email`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: v }) });
-    setSavingEmail(false);
-    if (r.ok) { setBoundEmail(v); setEmailMsg(t(lang, "saved")); setEmailErr(false); }
-    else { const j = await r.json().catch(() => ({})); setEmailMsg(j.error || t(lang, "saveFailed")); setEmailErr(true); }
+  async function connect() {
+    setEmailMsg(""); setConnecting(true);
+    const r = await apiFetch(`/api/workspaces/${workspaceId}/email/connect`, { method: "POST" });
+    setConnecting(false);
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.url) window.location.href = j.url;
+    else { setEmailMsg(j.error || t(lang, "saveFailed")); setEmailErr(true); }
+  }
+
+  async function disconnect() {
+    setEmailMsg(""); setEmailErr(false);
+    const r = await apiFetch(`/api/workspaces/${workspaceId}/email`, { method: "DELETE" });
+    if (r.ok) { setConnected(false); setBoundEmail(""); }
+    else { setEmailMsg(t(lang, "saveFailed")); setEmailErr(true); }
   }
 
   async function act(id: string, action: "apply" | "ignore") {
@@ -78,14 +85,20 @@ export default function InboxDrawer({ workspaceId, userId, templateId, lang, tas
         </header>
 
         <section className="email-section">
-          <label className="field">
-            <span className="field-label">{t(lang, "inboundEmail")}</span>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input className="input" style={{ flex: 1, minWidth: 0 }} value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder={t(lang, "inboundEmailPh")} />
-              <button className="btn btn-primary" onClick={saveEmail} disabled={savingEmail}>{savingEmail ? t(lang, "saving") : t(lang, "save")}</button>
-            </div>
-          </label>
-          <p style={{ fontSize: 12, color: "var(--muted)", margin: "8px 0 0" }}>{t(lang, "inboundEmailHelp")}</p>
+          <span className="field-label">{t(lang, "inboundEmail")}</span>
+          {connected ? (
+            <>
+              <p style={{ fontSize: 13, margin: "6px 0 0" }}>{t(lang, "connectedEmail")}{boundEmail ? `：${boundEmail}` : ""}</p>
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button className="btn btn-secondary" onClick={disconnect}>{t(lang, "disconnect")}</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={connect} disabled={connecting}>{connecting ? t(lang, "loading") : t(lang, "connectEmail")}</button>
+              <p style={{ fontSize: 12, color: "var(--muted)", margin: "8px 0 0" }}>{t(lang, "connectEmailHelp")}</p>
+            </>
+          )}
           {emailMsg && <p className={emailErr ? "error-text" : "success-text"} style={{ margin: "6px 0 0", fontSize: 12 }}>{emailMsg}</p>}
         </section>
 

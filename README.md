@@ -33,7 +33,7 @@
 
 ## 技术栈（一句话）
 
-**Next.js + Supabase（Postgres / Auth / Realtime / Storage）+ Vercel + 邮件入站（Mailgun / Resend / Postmark）**，AI 为可选第二层（规则优先）。详见 [docs/04-backend.md](docs/04-backend.md)。
+**Next.js + Supabase（Postgres / Auth / Realtime / Storage）+ Vercel + 统一邮箱 API（Nylas / Aurinko / Unipile）**，AI 为可选第二层（规则优先）。详见 [docs/04-backend.md](docs/04-backend.md)。
 
 ## 代码文件（阶段 0 起步，可直接粘贴）
 

@@ -6,7 +6,7 @@
 
 > 目标：用真实邮箱 + 真实 Excel 跑通摄取闭环，证明护城河成立。
 
-- [ ] 邮箱绑定（转发到专用地址）+ inbound webhook
+- [ ] 连接个人邮箱（统一邮箱 API：Nylas/Aurinko）+ inbound webhook
 - [ ] 接受关键词建任务 + 回复关键词更新状态（含线程归属）
 - [ ] Excel 导入（解析 → 预览 → 导入）
 - [ ] 看板 + 表格 + 状态流转 + 处理者矩阵
@@ -57,4 +57,4 @@
 
 ## 5. 第一步（本周）
 
-按 [03-ingestion.md](03-ingestion.md) 搭「转发地址 + inbound webhook + 关键词建任务」，用一个真实邮箱跑通端到端，再回来补 Excel 和多人协作。
+按 [03-ingestion.md](03-ingestion.md) 搭「连接个人邮箱 + inbound webhook + 关键词建任务」，用一个真实邮箱跑通端到端，再回来补 Excel 和多人协作。

@@ -122,14 +122,14 @@ create table public.inbox_items (
 );
 ```
 
-### email_accounts（绑定的监测邮箱）
+### email_accounts（连接的邮箱：个人版连自己 / 团队版连一人）
 ```sql
 create table public.email_accounts (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references workspaces(id) on delete cascade,
-  email text not null,
-  provider text not null,           -- forward | gmail | outlook | imap
-  connection jsonb,                 -- token/配置（加密存储）
+  email text not null,              -- 连接的邮箱地址
+  provider text not null,           -- gmail | outlook | imap（统一邮箱 API 连接；forward 为旧方案兜底）
+  connection jsonb,                 -- token/refresh（加密存储）
   created_at timestamptz default now()
 );
 ```

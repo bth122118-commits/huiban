@@ -127,17 +127,21 @@ create table if not exists public.inbox_items (
 );
 alter table public.inbox_items enable row level security;
 
--- ── email_accounts：绑定的监测邮箱 ────────────────────────────────────
+-- ── email_accounts：连接的邮箱（个人版连自己 / 团队版连一人）──────────
 create table if not exists public.email_accounts (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
   template_id uuid references public.templates(id) on delete set null,  -- 指定则按此模板匹配
-  email text not null,
-  provider text not null default 'forward',    -- forward | gmail | outlook | imap
+  email text,                                 -- 连接的邮箱地址（连接流拿不到 email 时可为空）
+  provider_account_id text,                   -- 统一邮箱 API 的账号 id（路由用）
+  provider text not null default 'forward',    -- gmail | outlook | imap（forward 为旧方案兜底）
   connection jsonb,
   created_at timestamptz not null default now()
 );
 alter table public.email_accounts enable row level security;
+-- 迁移：老库补 provider_account_id 列（幂等）
+alter table public.email_accounts add column if not exists provider_account_id text;
+alter table public.email_accounts alter column email drop not null;
 
 -- ── updated_at 触发器 ────────────────────────────────────────────────
 create or replace function public.set_updated_at() returns trigger as $$

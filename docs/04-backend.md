@@ -9,7 +9,7 @@
 | 认证 | Supabase Auth | 邮箱/Google 登录，零后端 |
 | 实时 | Supabase Realtime | 任务变更/在场，免自建 WebSocket |
 | 存储 | Supabase Storage | 照片（后期） |
-| 邮件入站 | Mailgun / Resend / Postmark inbound | 收转发邮件 → webhook |
+| 邮件接入 | Nylas / Aurinko / Unipile 统一邮箱 API | OAuth 连接用户邮箱 → webhook |
 | 部署 | Vercel（前端）+ Supabase（后端） | 免费层够内测 |
 
 > 备选：Firebase（Firestore + Auth）亦可，但 Postgres + RLS 对关系型业务更顺。
@@ -79,7 +79,7 @@ create policy "member write" on public.tasks for update
 ```js
 // POST /api/email/inbound
 function handleInbound(msg) {
-  const ws = resolveWorkspace(msg.recipient);        // 收件地址 → email_accounts
+  const ws = resolveWorkspace(msg.account);          // 连接的邮箱账号 → email_accounts
   const isReply = !!(msg.headers['In-Reply-To'] || msg.headers['References'])
                   || /^(Re:|回复：)/i.test(msg.subject);
   if (isReply) {
@@ -101,6 +101,6 @@ function handleInbound(msg) {
 
 ## 8. 安全清单
 
-- 邮件 webhook 校验签名（已实现：`RESEND_WEBHOOK_SECRET` 的 Svix 验签）。
+- 邮件 webhook 校验签名（按所接的统一邮箱 API 的签名机制验签）。
 - 上传 Excel 限制类型/大小、行数与字段长度（已实现，见 `app/api/import/excel/route.ts`）。
 - API 层逐请求鉴权（已实现：`lib/api-auth.ts`——Bearer token 校验 + `memberships` 授权；服务端用 service_role 查询，但每个路由都先过授权闸门）。

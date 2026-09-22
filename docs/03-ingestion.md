@@ -4,20 +4,23 @@
 
 ## A. 邮件摄取
 
-### 1. 监测方式（三选一，推荐第 1 种）
+### 1. 监测方式（MVP 选「连接个人邮箱」）
 
 | 方式 | 原理 | 优点 | 缺点 | 结论 |
 |---|---|---|---|---|
-| **① 转发到专用地址** | 用户在邮箱设转发规则 / 或直接寄到 `todo@你的域名`，用 Mailgun/Resend/Postmark inbound 收 | 无需 OAuth，最容易 | 用户要配转发 | **MVP 首选** |
-| ② Gmail / Graph API | 直连用户邮箱，push 通知或轮询 | 功能全、可读线程 | OAuth + 应用审核 | 后续增强 |
-| ③ IMAP 轮询 | 直连轮询 | 通用 | 限流、脆弱 | 不推荐 |
+| **① 连接个人邮箱（统一邮箱 API）** | 用户 OAuth 连接自己的 Gmail / Outlook / IMAP，经 Nylas / Aurinko / Unipile 中转，新邮件 webhook 实时推送 | 用户零配置（不用设转发）、别人不用迁就、覆盖个人所有邮件来源 | 按连接账号计费（$1–5/账号/月） | **MVP 首选** |
+| ② 转发到专用地址 | 用户设转发规则到 `todo@你的域名` | 发送方零授权 | 要配转发、不适合个人追踪 | 兜底备用 |
+| ③ 自研 Gmail/Graph/IMAP 直连 | 不经过第三方 | 无中转费 | 每家邮箱单独对接、IMAP 限流脆弱 | 不推荐 |
+
+> 选型：优先 **Aurinko**（$1–2/账号，最便宜）或 **Nylas**（hosted OAuth，最省事）。
+> 产品形态：**个人版 = 连自己的邮箱；团队版 = 指定一个人连他的邮箱，任务共享给全队。**
 
 ### 2. 收信 → 处理流程（webhook 内）
 
 ```
 inbound 邮件到达
   → 解析 from / subject / body / In-Reply-To / References
-  → 归属工作区（按收件地址 → email_accounts）
+  → 归属工作区（按连接的邮箱账号 → email_accounts）
   → 判断是否「回复」（有 In-Reply-To / References，或主题 Re:/回复:）
         ├─ 否 → 走「接受关键词」：命中 → 建 inbox_item(kind=create)，待确认
         └─ 是 → 走「回复关键词」：命中 → 找 ref_task → inbox_item(kind=reply)，自动更新状态
