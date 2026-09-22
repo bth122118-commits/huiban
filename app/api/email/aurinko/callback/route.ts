@@ -14,6 +14,7 @@ export async function GET(req: Request) {
 
   try {
     const { accountId, accessToken } = await exchangeCode(code);
+    console.log("[aurinko:callback] exchange ok, accountId", accountId);
     const db = getAdminClient();
     const { data: existing } = await db.from("email_accounts").select("id").eq("workspace_id", state).maybeSingle();
     const row = {
@@ -25,11 +26,16 @@ export async function GET(req: Request) {
     if (existing) await db.from("email_accounts").update(row).eq("id", existing.id);
     else await db.from("email_accounts").insert(row);
 
-    // 订阅新邮件 webhook（失败不阻断连接）
-    await subscribeWebhook(accessToken, `${origin}/api/email/aurinko`).catch(() => {});
+    try {
+      await subscribeWebhook(accessToken, `${origin}/api/email/aurinko`);
+      console.log("[aurinko:callback] subscribe ok");
+    } catch (e) {
+      console.log("[aurinko:callback] subscribe FAILED", e);
+    }
 
     return Response.redirect(`${origin}/board?connect=ok`);
-  } catch {
+  } catch (e) {
+    console.log("[aurinko:callback] ERROR", e);
     return Response.redirect(`${origin}/board?connect=error`);
   }
 }
