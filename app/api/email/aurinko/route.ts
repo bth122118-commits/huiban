@@ -7,6 +7,13 @@ export const runtime = "nodejs";
 
 // Aurinko「新邮件」webhook：payload = { accountId, payloads: [{ id, changeType }] }
 export async function POST(req: Request) {
+  const url = new URL(req.url);
+  // Aurinko 订阅验证：URL 带 validationToken，原样回显该 token（纯文本）即可通过
+  const validationToken = url.searchParams.get("validationToken");
+  if (validationToken) {
+    return new Response(validationToken, { status: 200, headers: { "Content-Type": "text/plain" } });
+  }
+
   const rawBody = await req.text();
   const sig = req.headers.get("x-aurinko-signature") || "";
   const sigOk = verifyWebhookSignature(req, rawBody);
