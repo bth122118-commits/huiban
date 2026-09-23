@@ -16,7 +16,7 @@ export function authorizeUrl(returnUrl: string, state: string): string {
   const q = new URLSearchParams({
     clientId: aurinkoClientId(),
     serviceType: "Google",
-    scopes: "Mail.Read Mail.Send",
+    scopes: "Mail.ReadWrite Mail.Send",
     responseType: "code",
     returnUrl,
     state,
