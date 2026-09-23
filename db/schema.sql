@@ -143,6 +143,15 @@ alter table public.email_accounts enable row level security;
 alter table public.email_accounts add column if not exists provider_account_id text;
 alter table public.email_accounts alter column email drop not null;
 
+-- ── webhook_log：调试用（回调/webhook 事件，上线后可删）────────────────
+create table if not exists public.webhook_log (
+  id bigint generated always as identity primary key,
+  event text not null,
+  detail text,
+  created_at timestamptz not null default now()
+);
+alter table public.webhook_log enable row level security;  -- 无策略 = 仅 service role 可读写
+
 -- ── updated_at 触发器 ────────────────────────────────────────────────
 create or replace function public.set_updated_at() returns trigger as $$
 begin

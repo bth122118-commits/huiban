@@ -10,12 +10,17 @@ export async function GET(req: Request) {
   const state = u.searchParams.get("state"); // workspace id
   const origin = u.origin;
 
-  if (!code || !state) return Response.redirect(`${origin}/board?connect=error`);
+  const db = getAdminClient();
+  const log = (event: string, detail: any) =>
+    db.from("webhook_log").insert({ event, detail: JSON.stringify(detail) }).then(() => {}, () => {});
+
+  if (!code || !state) {
+    await log("callback_no_code", { origin });
+    return Response.redirect(`${origin}/board?connect=error`);
+  }
 
   try {
     const { accountId, accessToken } = await exchangeCode(code);
-    console.log("[aurinko:callback] exchange ok, accountId", accountId);
-    const db = getAdminClient();
     const { data: existing } = await db.from("email_accounts").select("id").eq("workspace_id", state).maybeSingle();
     const row = {
       workspace_id: state,
@@ -26,16 +31,19 @@ export async function GET(req: Request) {
     if (existing) await db.from("email_accounts").update(row).eq("id", existing.id);
     else await db.from("email_accounts").insert(row);
 
+    let subscribeResult = "ok";
+    let subscribeError = "";
     try {
       await subscribeWebhook(accessToken, `${origin}/api/email/aurinko`);
-      console.log("[aurinko:callback] subscribe ok");
     } catch (e) {
-      console.log("[aurinko:callback] subscribe FAILED", e);
+      subscribeResult = "failed";
+      subscribeError = String(e);
     }
+    await log("callback", { accountId, origin, subscribeResult, subscribeError });
 
     return Response.redirect(`${origin}/board?connect=ok`);
   } catch (e) {
-    console.log("[aurinko:callback] ERROR", e);
+    await log("callback_error", { error: String(e) });
     return Response.redirect(`${origin}/board?connect=error`);
   }
 }

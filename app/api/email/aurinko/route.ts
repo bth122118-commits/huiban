@@ -10,8 +10,13 @@ export async function POST(req: Request) {
   const rawBody = await req.text();
   const sig = req.headers.get("x-aurinko-signature") || "";
   const sigOk = verifyWebhookSignature(req, rawBody);
-  // TODO(安全)：确认 Aurinko 签名字段格式后，恢复「验签失败 → 401」
-  console.log("[aurinko:webhook] sig:", sig ? sig.slice(0, 32) : "(none)", "verified:", sigOk, "raw:", rawBody.slice(0, 400));
+
+  const db = supabase();
+  // 每次到达都先写日志（确保能看出有没有被 Aurinko 调用）
+  await db.from("webhook_log").insert({
+    event: "webhook",
+    detail: JSON.stringify({ sig: !!sig, sigOk, raw: rawBody.slice(0, 800) }),
+  }).then(() => {}, () => {});
 
   let payload: any;
   try {
@@ -24,28 +29,35 @@ export async function POST(req: Request) {
   const items: any[] = payload.payloads || [];
   if (!accountId || !items.length) return Response.json({ ok: true, skipped: "empty" });
 
-  const db = supabase();
   const { data: account } = await db
     .from("email_accounts")
     .select("workspace_id, template_id, connection")
     .eq("provider_account_id", String(accountId))
     .maybeSingle();
-  if (!account) { console.log("[aurinko:webhook] no account for accountId", accountId); return Response.json({ ok: true, skipped: "no_account" }); }
+  if (!account) {
+    await db.from("webhook_log").insert({ event: "webhook_no_account", detail: JSON.stringify({ accountId }) }).then(() => {}, () => {});
+    return Response.json({ ok: true, skipped: "no_account" });
+  }
 
   const token = account.connection?.accessToken;
-  if (!token) { console.log("[aurinko:webhook] no token for accountId", accountId); return Response.json({ ok: true, skipped: "no_token" }); }
+  if (!token) return Response.json({ ok: true, skipped: "no_token" });
 
   let processed = 0;
+  const errors: string[] = [];
   for (const it of items) {
-    if (it.changeType !== "created") { console.log("[aurinko:webhook] skip changeType", it.changeType); continue; }
+    if (it.changeType !== "created") continue;
     const m = await fetchMessage(token, it.id);
-    if (!m) { console.log("[aurinko:webhook] fetch failed for id", it.id); continue; }
+    if (!m) { errors.push(`fetch_failed:${it.id}`); continue; }
     const msg = normalizeMessage(m);
-    if (!msg || (!msg.subject && !msg.body)) { console.log("[aurinko:webhook] normalize empty for id", it.id, JSON.stringify(m).slice(0, 300)); continue; }
+    if (!msg || (!msg.subject && !msg.body)) { errors.push(`normalize_empty:${it.id}:${JSON.stringify(m).slice(0, 200)}`); continue; }
     await ingestMessage(db, account, msg);
     processed++;
   }
 
-  console.log("[aurinko:webhook] processed", processed);
+  await db.from("webhook_log").insert({
+    event: "webhook_result",
+    detail: JSON.stringify({ accountId, items: items.length, processed, errors }),
+  }).then(() => {}, () => {});
+
   return Response.json({ ok: true, processed });
 }
