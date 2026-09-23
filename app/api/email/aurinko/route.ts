@@ -18,11 +18,17 @@ export async function POST(req: Request) {
     detail: JSON.stringify({ sig: !!sig, sigOk, raw: rawBody.slice(0, 800) }),
   }).then(() => {}, () => {});
 
+  // 空 body = Aurinko 的「订阅验证」请求，直接回 200 即可
+  if (!rawBody || !rawBody.trim()) {
+    return Response.json({ ok: true, skipped: "empty_body" });
+  }
+
   let payload: any;
   try {
     payload = JSON.parse(rawBody);
   } catch {
-    return Response.json({ ok: false, error: "invalid_json" }, { status: 400 });
+    // 非 JSON 也回 200，避免把验证/未知请求挡掉
+    return Response.json({ ok: true, skipped: "non_json" });
   }
 
   const accountId = payload.accountId ?? payload.account_id ?? null;
