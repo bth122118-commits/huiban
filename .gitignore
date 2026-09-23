@@ -6,3 +6,4 @@ out/
 *.tsbuildinfo
 *.log
 .DS_Store
+image-*.png
