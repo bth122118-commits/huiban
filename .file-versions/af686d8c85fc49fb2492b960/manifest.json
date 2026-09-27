@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 2,
+  "fileName": "privacy-policy.html",
+  "currentVersionId": "2918ac12-756e-49c9-a7b2-6d4ff126bb31",
+  "entries": [
+    {
+      "id": "2918ac12-756e-49c9-a7b2-6d4ff126bb31",
+      "fileName": "privacy-policy.html",
+      "version": 1,
+      "label": "Version 1",
+      "createdAt": 1790502110263,
+      "source": "ai",
+      "prompt": "不，先搞了google cloud认证所需要的两个子网站先",
+      "size": 3087,
+      "mime": "text/html; charset=utf-8",
+      "kind": "html",
+      "contentPath": "0001-2918ac12-756e-49c9-a7b2-6d4ff126bb31.html",
+      "contentDigest": "51e16d7182077f65abf77680f6cc1ed6e07ba353195cd26036dce48df73c2823",
+      "promptSource": "message"
+    }
+  ]
+}

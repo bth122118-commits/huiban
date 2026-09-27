@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 2,
+  "fileName": "landing-page.html",
+  "currentVersionId": "e21a4946-0c7e-4126-ae18-8763f07df5e5",
+  "entries": [
+    {
+      "id": "e21a4946-0c7e-4126-ae18-8763f07df5e5",
+      "fileName": "landing-page.html",
+      "version": 1,
+      "label": "Version 1",
+      "createdAt": 1790502110263,
+      "source": "ai",
+      "prompt": "不，先搞了google cloud认证所需要的两个子网站先",
+      "size": 6499,
+      "mime": "text/html; charset=utf-8",
+      "kind": "html",
+      "contentPath": "0001-e21a4946-0c7e-4126-ae18-8763f07df5e5.html",
+      "contentDigest": "fdb7cc658219eff1c1dd4f052ae4266ad762ebb499c5eaf6793a7ddbf395160b",
+      "promptSource": "message"
+    }
+  ]
+}
