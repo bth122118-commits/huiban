@@ -7,3 +7,5 @@ out/
 *.log
 .DS_Store
 image-*.png
+.file-versions/
+*.artifact.json
