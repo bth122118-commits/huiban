@@ -152,6 +152,28 @@ create table if not exists public.webhook_log (
 );
 alter table public.webhook_log enable row level security;  -- 无策略 = 仅 service role 可读写
 
+-- ── paddle_events：Paddle webhook 事件日志（审计 / 排查）──────────────
+create table if not exists public.paddle_events (
+  id bigint generated always as identity primary key,
+  event_type text not null,
+  payload text,
+  created_at timestamptz not null default now()
+);
+alter table public.paddle_events enable row level security;  -- 无策略 = 仅 service role
+
+-- ── subscriptions：订阅状态镜像（Paddle subscription.* 事件驱动）──────
+create table if not exists public.subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  paddle_subscription_id text not null unique,
+  paddle_customer_id text,
+  price_id text,
+  status text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.subscriptions enable row level security;  -- 无策略 = 仅 service role
+
 -- ── updated_at 触发器 ────────────────────────────────────────────────
 create or replace function public.set_updated_at() returns trigger as $$
 begin
