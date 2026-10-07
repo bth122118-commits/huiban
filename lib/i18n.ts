@@ -4,7 +4,7 @@ const D: Record<string, Record<string, string>> = {
   zh: {
     board: "看板", table: "表格", all: "全部", mail: "邮件", excel: "Excel", manual: "手动",
     allType: "全部类型", search: "搜索标题…", newTask: "+ 新建任务", editTemplate: "编辑模板",
-    inbox: "收件箱", members: "成员", handler: "处理", priority: "重要性", type: "类型",
+    inbox: "收件箱", members: "成员", upgrade: "升级", handler: "处理", priority: "重要性", type: "类型",
     status: "状态", due: "截止", noTasks: "暂无任务", noMatch: "没有匹配的任务",
     urgent: "紧急", high: "重要", normal: "普通", unassigned: "未指派",
     newTaskTitle: "新建任务", taskDetail: "任务详情", title: "标题", desc: "描述", dueDate: "截止日期",
@@ -36,7 +36,7 @@ const D: Record<string, Record<string, string>> = {
   en: {
     board: "Board", table: "Table", all: "All", mail: "Email", excel: "Excel", manual: "Manual",
     allType: "All types", search: "Search titles…", newTask: "+ New task", editTemplate: "Edit template",
-    inbox: "Inbox", members: "Members", handler: "Handler", priority: "Priority", type: "Type",
+    inbox: "Inbox", members: "Members", upgrade: "Upgrade", handler: "Handler", priority: "Priority", type: "Type",
     status: "Status", due: "Due", noTasks: "No tasks", noMatch: "No matching tasks",
     urgent: "Urgent", high: "High", normal: "Normal", unassigned: "Unassigned",
     newTaskTitle: "New task", taskDetail: "Task", title: "Title", desc: "Description", dueDate: "Due date",

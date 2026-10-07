@@ -165,7 +165,8 @@ export default function BoardPage() {
           </div>
         )}
 
-        <button className="btn btn-primary" style={{ marginLeft: "auto" }} onClick={() => setModal({ mode: "create" })}>{t(lang, "newTask")}</button>
+        <a href="/pricing" className="btn btn-secondary" style={{ marginLeft: "auto" }}>{t(lang, "upgrade")}</a>
+        <button className="btn btn-primary" onClick={() => setModal({ mode: "create" })}>{t(lang, "newTask")}</button>
       </div>
 
       {view === "board" ? (
