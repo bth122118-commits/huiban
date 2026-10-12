@@ -100,6 +100,9 @@ export default function LoginPage() {
             {mode === "signin" ? "没有账号？注册" : "已有账号？登录"}
           </button>
         </div>
+        <div style={{ marginTop: 12, textAlign: "center" }}>
+          <a href="/landing-page.html" className="auth-link" style={{ fontSize: 13 }}>← 返回首页</a>
+        </div>
       </div>
     </main>
   );
