@@ -101,7 +101,7 @@ export default function LoginPage() {
           </button>
         </div>
         <div style={{ marginTop: 12, textAlign: "center" }}>
-          <a href="/landing-page.html" className="auth-link" style={{ fontSize: 13 }}>← 返回首页</a>
+          <a href="/" className="auth-link" style={{ fontSize: 13 }}>← 返回首页</a>
         </div>
       </div>
     </main>

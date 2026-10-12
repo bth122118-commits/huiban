@@ -106,7 +106,7 @@ export default function PricingPage() {
 
   return (
     <main style={{ maxWidth: 960, margin: "0 auto", padding: "48px 24px" }}>
-      <a href="/landing-page.html" style={{ fontSize: 14, color: "var(--accent)", display: "inline-block", marginBottom: 16 }}>← 返回首页</a>
+      <a href="/" style={{ fontSize: 14, color: "var(--accent)", display: "inline-block", marginBottom: 16 }}>← 返回首页</a>
       <h1 style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.01em", margin: "0 0 8px" }}>选择套餐</h1>
       <p style={{ color: "var(--muted)", margin: "0 0 28px" }}>免费开始，随时升级。所有套餐都支持邮件自动建任务、Excel 导入。</p>
 
