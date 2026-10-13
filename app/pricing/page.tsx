@@ -148,6 +148,7 @@ export default function PricingPage() {
       </div>
 
       {error && <p style={{ color: "var(--danger)", fontSize: 13, marginTop: 16 }}>{error}</p>}
+      <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 24 }}>支付由 Paddle 处理，Paddle 为记录商户（Merchant of Record）。</p>
     </main>
   );
 }
