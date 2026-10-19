@@ -134,7 +134,7 @@ create table if not exists public.email_accounts (
   template_id uuid references public.templates(id) on delete set null,  -- 指定则按此模板匹配
   email text,                                 -- 连接的邮箱地址（连接流拿不到 email 时可为空）
   provider_account_id text,                   -- 统一邮箱 API 的账号 id（路由用）
-  provider text not null default 'forward',    -- gmail | outlook | imap（forward 为旧方案兜底）
+  provider text not null default 'forward',    -- outlook | forward（forward 为旧方案兜底）
   connection jsonb,
   created_at timestamptz not null default now()
 );

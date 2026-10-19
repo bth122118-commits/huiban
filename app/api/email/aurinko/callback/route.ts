@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export async function GET(req: Request) {
   const u = new URL(req.url);
   const code = u.searchParams.get("code");
-  const state = u.searchParams.get("state"); // workspace id
+  const state = u.searchParams.get("state") || ""; // workspace id
   const origin = u.origin;
 
   const db = getAdminClient();
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     const row = {
       workspace_id: state,
       provider_account_id: String(accountId),
-      provider: "gmail",
+      provider: "outlook",
       connection: { accessToken, accountId },
     };
     if (existing) await db.from("email_accounts").update(row).eq("id", existing.id);

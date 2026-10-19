@@ -11,11 +11,14 @@ const BASE = "https://api.aurinko.io/v1";
 export function aurinkoClientId(): string { return process.env.AURINKO_CLIENT_ID!; }
 function aurinkoClientSecret(): string { return process.env.AURINKO_CLIENT_SECRET!; }
 
-// ── 1. 授权 URL（把用户重定向到 Aurinko 去授权 Google 邮箱）────────────
+// ── 1. 授权 URL（把用户重定向到 Aurinko 去授权 Outlook 邮箱）───────────
+// 仅接 Outlook / Office365，暂不接入其它邮箱。
 export function authorizeUrl(returnUrl: string, state: string): string {
   const q = new URLSearchParams({
     clientId: aurinkoClientId(),
-    serviceType: "Google",
+    serviceType: "Office365",
+    // Aurinko 抽象 scope：Mail.ReadWrite 不含发件，加 Mail.Send 才能发。
+    // Office365 侧 Aurinko 会隐式请求 offline_access/openid/profile/User.Read/MailboxSettings.Read。
     scopes: "Mail.ReadWrite Mail.Send",
     responseType: "code",
     returnUrl,
