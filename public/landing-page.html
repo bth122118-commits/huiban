@@ -66,6 +66,17 @@ footer { border-top: 1px solid var(--border); padding: 26px 0 40px; font-size: 1
 footer .container { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 footer a { color: var(--muted); }
 
+/* ── 截图轮播 ─────────────────────────────────── */
+.carousel { max-width: 960px; margin: 0 auto; }
+.carousel-viewport { position: relative; aspect-ratio: 1920 / 911; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); }
+.carousel-slide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 400ms ease; }
+.carousel-slide.active { opacity: 1; }
+.carousel-dots { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+.carousel-dot { width: 8px; height: 8px; border-radius: 999px; border: none; padding: 0; background: var(--border); cursor: pointer; transition: background 200ms ease, width 200ms ease; }
+.carousel-dot.active { width: 24px; background: var(--accent); }
+.carousel-dot:hover { background: var(--muted); }
+.carousel-dot:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
 @media (max-width: 880px) {
   .features { grid-template-columns: 1fr; }
   .hero h1 { font-size: 38px; }
@@ -131,6 +142,23 @@ footer a { color: var(--muted); }
   </div>
 </section>
 
+<section class="container section" id="screenshots" data-od-id="screenshots-carousel">
+  <h2 class="section-title" data-i18n="shots-title">看看它长什么样</h2>
+  <p class="section-sub" data-i18n="shots-sub">从邮件和表格，到一块实时同步的看板。</p>
+  <div class="carousel">
+    <div class="carousel-viewport">
+      <img class="carousel-slide active" src="screenshot-1.png" alt="产品截图 1" data-i18n-alt="shots-alt-1">
+      <img class="carousel-slide" src="screenshot-2.png" alt="产品截图 2" data-i18n-alt="shots-alt-2">
+      <img class="carousel-slide" src="screenshot-3.png" alt="产品截图 3" data-i18n-alt="shots-alt-3">
+    </div>
+    <div class="carousel-dots">
+      <button class="carousel-dot active" data-index="0" aria-label="第 1 张"></button>
+      <button class="carousel-dot" data-index="1" aria-label="第 2 张"></button>
+      <button class="carousel-dot" data-index="2" aria-label="第 3 张"></button>
+    </div>
+  </div>
+</section>
+
 <section class="container cta">
   <h2 data-i18n="cta-h2">现在就把杂事收进看板</h2>
   <p data-i18n="cta-sub">免费开始，几分钟跑通。</p>
@@ -166,7 +194,8 @@ footer a { color: var(--muted); }
       "s2-title": "2 · 连邮箱 / 传 Excel", "s2-desc": "把任务来源接进来，自动收进看板。",
       "s3-title": "3 · 追踪进度", "s3-desc": "看板 + 表格双视图，谁在办、到哪一步一眼看清。",
       "cta-h2": "现在就把杂事收进看板", "cta-sub": "免费开始，几分钟跑通。", "cta-start2": "免费开始",
-      "footer-brand": "BuildTrace · 汇办", "footer-privacy": "隐私政策", "footer-terms": "服务条款", "footer-refund": "退款政策", "footer-contact": "联系", "footer-paddle": "支付由 Paddle 处理，Paddle 为记录商户（Merchant of Record）。"
+      "footer-brand": "BuildTrace · 汇办", "footer-privacy": "隐私政策", "footer-terms": "服务条款", "footer-refund": "退款政策", "footer-contact": "联系", "footer-paddle": "支付由 Paddle 处理，Paddle 为记录商户（Merchant of Record）。",
+      "shots-title": "看看它长什么样", "shots-sub": "从邮件和表格，到一块实时同步的看板。", "shots-alt-1": "产品截图 1", "shots-alt-2": "产品截图 2", "shots-alt-3": "产品截图 3"
     },
     en: {
       "brand-zh": "",
@@ -184,7 +213,8 @@ footer a { color: var(--muted); }
       "s2-title": "2 · Connect email / upload Excel", "s2-desc": "Bring your task sources in, auto-sorted onto the board.",
       "s3-title": "3 · Track progress", "s3-desc": "Board + table views — see who's doing what, at a glance.",
       "cta-h2": "Get your tasks onto a board today", "cta-sub": "Start free — set up in minutes.", "cta-start2": "Start free",
-      "footer-brand": "BuildTrace", "footer-privacy": "Privacy", "footer-terms": "Terms", "footer-refund": "Refunds", "footer-contact": "Contact", "footer-paddle": "Payments processed by Paddle, our Merchant of Record."
+      "footer-brand": "BuildTrace", "footer-privacy": "Privacy", "footer-terms": "Terms", "footer-refund": "Refunds", "footer-contact": "Contact", "footer-paddle": "Payments processed by Paddle, our Merchant of Record.",
+      "shots-title": "See it in action", "shots-sub": "From email and spreadsheets, to one real-time board.", "shots-alt-1": "Screenshot 1", "shots-alt-2": "Screenshot 2", "shots-alt-3": "Screenshot 3"
     }
   };
   function apply(lang) {
@@ -192,6 +222,10 @@ footer a { color: var(--muted); }
     document.querySelectorAll("[data-i18n]").forEach(function (el) {
       var k = el.getAttribute("data-i18n");
       if (I18N[lang] && I18N[lang][k] !== undefined) el.textContent = I18N[lang][k];
+    });
+    document.querySelectorAll("[data-i18n-alt]").forEach(function (el) {
+      var k = el.getAttribute("data-i18n-alt");
+      if (I18N[lang] && I18N[lang][k] !== undefined) el.alt = I18N[lang][k];
     });
     document.querySelectorAll("[data-lang]").forEach(function (b) {
       b.classList.toggle("active", b.getAttribute("data-lang") === lang);
@@ -204,6 +238,36 @@ footer a { color: var(--muted); }
   document.querySelectorAll("[data-lang]").forEach(function (b) {
     b.addEventListener("click", function () { apply(b.getAttribute("data-lang")); });
   });
+})();
+</script>
+<script>
+(function () {
+  var slides = document.querySelectorAll(".carousel-slide");
+  var dots = document.querySelectorAll(".carousel-dot");
+  if (!slides.length || !dots.length) return;
+  var current = 0;
+  var timer = null;
+  var INTERVAL = 4000;
+
+  function goTo(i) {
+    current = (i + slides.length) % slides.length;
+    slides.forEach(function (s, idx) { s.classList.toggle("active", idx === current); });
+    dots.forEach(function (d, idx) { d.classList.toggle("active", idx === current); });
+  }
+
+  function restart() {
+    clearInterval(timer);
+    timer = setInterval(function () { goTo(current + 1); }, INTERVAL);
+  }
+
+  dots.forEach(function (d) {
+    d.addEventListener("click", function () {
+      goTo(Number(d.getAttribute("data-index")));
+      restart();
+    });
+  });
+
+  restart();
 })();
 </script>
 </body>
