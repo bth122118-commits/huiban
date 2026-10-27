@@ -18,6 +18,18 @@ type Task = {
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, normal: 2 };
 const SOURCES = ["all", "mail", "excel", "manual"] as const;
 
+function timeAgo(iso: string | null | undefined, lang: Lang): string {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return lang === "zh" ? "刚刚" : "just now";
+  if (m < 60) return `${m}${lang === "zh" ? "分钟前" : "m ago"}`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}${lang === "zh" ? "小时前" : "h ago"}`;
+  const d = Math.floor(h / 24);
+  return `${d}${lang === "zh" ? "天前" : "d ago"}`;
+}
+
 export default function BoardPage() {
   const [userId, setUserId] = useState("");
   const [workspaceName, setWorkspaceName] = useState("");
@@ -25,6 +37,7 @@ export default function BoardPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templateId, setTemplateId] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [members, setMembers] = useState<Record<string, string>>({});
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -71,12 +84,20 @@ export default function BoardPage() {
     if (!workspaceId) return;
     const { data } = await supabase.from("tasks").select("*").eq("workspace_id", workspaceId);
     setTasks(data || []);
+    const ids = (data || []).map((t) => t.id);
+    if (ids.length) {
+      const { data: ev } = await supabase.from("task_events").select("task_id, actor_id, from_status, to_status, note, created_at").in("task_id", ids).order("created_at", { ascending: false });
+      setEvents(ev || []);
+    } else {
+      setEvents([]);
+    }
   }, [workspaceId]);
   useEffect(() => {
     loadTasks();
     if (!workspaceId) return;
     const ch = supabase.channel(`board-${workspaceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `workspace_id=eq.${workspaceId}` }, loadTasks)
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_events" }, loadTasks)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [workspaceId, loadTasks]);
@@ -93,6 +114,18 @@ export default function BoardPage() {
   const statuses = template?.statuses || [];
   const categories = template?.categories || [];
   const handlerLabel = (task: Task) => task.handler_id ? (members[task.handler_id] || "…") : (task.handler_name || t(lang, "unassigned"));
+
+  const latestEvent = useMemo(() => {
+    const map: Record<string, any> = {};
+    for (const e of events) if (!map[e.task_id]) map[e.task_id] = e;
+    return map;
+  }, [events]);
+  const updatedByLabel = (task: Task) => {
+    const uid = latestEvent[task.id]?.actor_id || task.publisher_id;
+    if (!uid) return "";
+    if (uid === userId) return t(lang, "you");
+    return members[uid] || "…";
+  };
 
   const visibleTasks = useMemo(() => tasks.filter((t) => {
     if (t.template_id !== templateId) return false;
@@ -182,6 +215,7 @@ export default function BoardPage() {
                     <span className="card-title">{task.title}</span>
                     <div className="card-meta">{t(lang, task.priority)} · {t(lang, task.source)}</div>
                     <div className="card-handler">{t(lang, "handler")}：{handlerLabel(task)}</div>
+                    {updatedByLabel(task) && <div className="card-updated">{t(lang, "lastUpdated")} {updatedByLabel(task)}{latestEvent[task.id] ? ` · ${timeAgo(latestEvent[task.id].created_at, lang)}` : ""}</div>}
                   </div>
                 ))}
                 {col.length === 0 && <div className="col-empty">{t(lang, "noTasks")}</div>}
@@ -231,6 +265,7 @@ export default function BoardPage() {
           lang={lang}
           userId={userId}
           workspaceId={workspaceId}
+          members={members}
           onClose={() => setModal(null)}
           onChanged={loadTasks}
         />
@@ -251,8 +286,8 @@ export default function BoardPage() {
   );
 }
 
-function TaskModal({ mode, task, template, lang, userId, workspaceId, onClose, onChanged }: {
-  mode: "create" | "edit"; task: Task | null; template: Template | undefined; lang: Lang; userId: string; workspaceId: string; onClose: () => void; onChanged: () => void;
+function TaskModal({ mode, task, template, lang, userId, workspaceId, members, onClose, onChanged }: {
+  mode: "create" | "edit"; task: Task | null; template: Template | undefined; lang: Lang; userId: string; workspaceId: string; members: Record<string, string>; onClose: () => void; onChanged: () => void;
 }) {
   const [title, setTitle] = useState(task?.title || "");
   const [description, setDescription] = useState(task?.description || "");
@@ -262,7 +297,16 @@ function TaskModal({ mode, task, template, lang, userId, workspaceId, onClose, o
   const [statusIndex, setStatusIndex] = useState(task?.status_index ?? 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [events, setEvents] = useState<any[]>([]);
   const statuses = template?.statuses || [];
+
+  useEffect(() => {
+    if (mode === "edit" && task?.id) {
+      supabase.from("task_events").select("actor_id, from_status, to_status, note, created_at").eq("task_id", task.id).order("created_at", { ascending: false }).then(({ data }) => setEvents(data || []));
+    }
+  }, [mode, task?.id]);
+
+  const actorName = (id: string | null) => id ? (id === userId ? t(lang, "you") : (members[id] || "…")) : "";
 
   async function save() {
     if (!title.trim()) { setError(t(lang, "titleRequired")); return; }
@@ -326,6 +370,20 @@ function TaskModal({ mode, task, template, lang, userId, workspaceId, onClose, o
           </label>
           {error && <p className="error-text">{error}</p>}
         </div>
+
+        {mode === "edit" && (
+          <div className="activity">
+            <p className="activity-title">{t(lang, "activity")}</p>
+            {events.length === 0 && <p className="activity-empty">{t(lang, "noActivity")}</p>}
+            {events.map((e, i) => (
+              <div key={i} className="activity-row">
+                <span className="activity-who">{actorName(e.actor_id)}</span>
+                <span className="activity-what">{e.from_status && e.to_status ? `${e.from_status} → ${e.to_status}` : (e.note || "")}</span>
+                <span className="activity-time">{timeAgo(e.created_at, lang)}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="modal-actions">
           {mode === "edit" && <button className="btn btn-danger" onClick={del}>{t(lang, "del")}</button>}
