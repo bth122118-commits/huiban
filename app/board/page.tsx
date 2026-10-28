@@ -35,6 +35,7 @@ export default function BoardPage() {
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceId, setWorkspaceId] = useState("");
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string; role: string }[]>([]);
+  const [online, setOnline] = useState<string[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templateId, setTemplateId] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -125,6 +126,22 @@ export default function BoardPage() {
     setMembers(Object.fromEntries((r.members || []).map((m: any) => [m.id, m.name])));
   }, [workspaceId]);
   useEffect(() => { loadMembers(); }, [loadMembers]);
+
+  // 在线协作头像（Supabase Realtime Presence）：上报我在线 + 拿在线名单
+  useEffect(() => {
+    if (!workspaceId || !userId) return;
+    const ch = supabase.channel(`presence-${workspaceId}`, {
+      config: { presence: { key: userId } },
+    });
+    ch.on("presence", { event: "sync" }, () => {
+      setOnline(Object.keys(ch.presenceState()));
+    }).subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await ch.track({ user_id: userId });
+      }
+    });
+    return () => { supabase.removeChannel(ch); };
+  }, [workspaceId, userId]);
 
   const template = templates.find((t) => t.id === templateId);
   const lang: Lang = template?.lang === "en" ? "en" : "zh";
@@ -225,6 +242,13 @@ export default function BoardPage() {
 
         <a href="/pricing" className="btn btn-secondary" style={{ marginLeft: "auto" }}>{t(lang, "upgrade")}</a>
         <button className="btn btn-primary" onClick={() => setModal({ mode: "create" })}>{t(lang, "newTask")}</button>
+        {online.length > 0 && (
+          <div className="presence">
+            {online.map((id) => (
+              <span key={id} className="presence-avatar" title={members[id] || ""}>{(members[id] || "?").slice(0, 1).toUpperCase()}</span>
+            ))}
+          </div>
+        )}
       </div>
 
       {view === "board" ? (
