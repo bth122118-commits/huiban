@@ -34,6 +34,7 @@ export default function BoardPage() {
   const [userId, setUserId] = useState("");
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceId, setWorkspaceId] = useState("");
+  const [workspaces, setWorkspaces] = useState<{ id: string; name: string; role: string }[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templateId, setTemplateId] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -57,20 +58,36 @@ export default function BoardPage() {
       const { data } = await supabase.auth.getUser();
       if (!data.user) { location.href = "/login"; return; }
       setUserId(data.user.id);
-      // 一人一个工作台：取「我」owner 的工作台（联机协作进别人的工作台时再扩展）
+      // 我加入的所有工作台（自己的 + 被邀请协作的），支持切换
       const { data: ms, error: msErr } = await supabase.from("memberships").select("workspace_id, role").eq("user_id", data.user.id);
       if (msErr) { setLoadError(msErr.message); setReady(true); return; }
-      const mine = (ms || []).find((m) => m.role === "owner") || (ms || [])[0];
-      if (!mine) { setReady(true); return; }
-      const { data: ws } = await supabase.from("workspaces").select("id, name").eq("id", mine.workspace_id).maybeSingle();
-      if (ws) {
-        setWorkspaceId(ws.id);
-        setWorkspaceName(ws.name);
-        localStorage.setItem("huiban.workspace", ws.id);
-      }
+      if (!ms || !ms.length) { setReady(true); return; }
+      const wsIds = ms.map((m) => m.workspace_id);
+      const { data: wss } = await supabase.from("workspaces").select("id, name").in("id", wsIds);
+      const list = ms.map((m) => {
+        const w = (wss || []).find((x) => x.id === m.workspace_id);
+        return { id: m.workspace_id, name: w?.name || "…", role: m.role };
+      });
+      setWorkspaces(list);
+      const saved = localStorage.getItem("huiban.workspace");
+      const current = list.find((w) => w.id === saved) || list.find((w) => w.role === "owner") || list[0];
+      setWorkspaceId(current.id);
+      setWorkspaceName(current.name);
+      localStorage.setItem("huiban.workspace", current.id);
       setReady(true);
     })();
   }, []);
+
+  function switchWorkspace(id: string) {
+    const w = workspaces.find((x) => x.id === id);
+    if (!w || w.id === workspaceId) return;
+    localStorage.setItem("huiban.workspace", id);
+    setWorkspaceId(w.id);
+    setWorkspaceName(w.name);
+    setQuery("");
+    setSourceFilter("all");
+    setCategoryFilter("all");
+  }
 
   const loadTemplates = useCallback(async () => {
     if (!workspaceId) return;
@@ -167,7 +184,15 @@ export default function BoardPage() {
   return (
     <main className="board-shell">
       <div className="toolbar">
-        <span className="toolbar-title">{workspaceName}</span>
+        {workspaces.length > 1 ? (
+          <select className="select" value={workspaceId} onChange={(e) => switchWorkspace(e.target.value)} style={{ minWidth: 180, fontWeight: 600 }}>
+            {workspaces.map((w) => (
+              <option key={w.id} value={w.id}>{w.name}{w.role === "owner" ? "" : ` · ${w.role === "member" ? t(lang, "member") : t(lang, "admin")}`}</option>
+            ))}
+          </select>
+        ) : (
+          <span className="toolbar-title">{workspaceName}</span>
+        )}
         <select className="select" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
           {templates.map((tm) => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
         </select>
