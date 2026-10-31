@@ -134,6 +134,11 @@ body {
 .presence-avatar { width: 28px; height: 28px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--surface); background: var(--fg); border: 2px solid var(--bg); margin-left: -8px; }
 .presence-avatar:first-child { margin-left: 0; }
 
+.lang-switch { position: fixed; top: 16px; right: 16px; z-index: 20; display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 3px; }
+.lang-switch button { border: none; background: transparent; color: var(--muted); font-size: 13px; padding: 4px 10px; border-radius: 999px; cursor: pointer; font-family: inherit; }
+.lang-switch button.active { background: var(--fg); color: var(--surface); }
+.lang-switch button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
 /* ── 抽屉 / 弹窗子组件 ───────────────────────────────────── */
 .drawer-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); z-index: 60; }
 .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 400px; max-width: 92vw; background: var(--surface); z-index: 61; display: flex; flex-direction: column; box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12); }

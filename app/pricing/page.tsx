@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase-browser";
+import { t, type Lang } from "@/lib/i18n";
 
 declare global {
   interface Window { Paddle?: any; }
@@ -14,7 +15,6 @@ type Plan = {
   desc: string;
   monthlyPrice: string;
   yearlyPrice: string;
-  monthlyNote?: string;
   yearlyNote?: string;
   monthlyPriceId: string;
   yearlyPriceId: string;
@@ -23,42 +23,18 @@ type Plan = {
   free?: boolean;
 };
 
-const PLANS: Plan[] = [
-  {
-    id: "free",
-    name: "免费版",
-    desc: "个人体验，把邮件和 Excel 的杂事收成看板。",
-    monthlyPrice: "$0",
-    yearlyPrice: "$0",
-    monthlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_FREE || "",
-    yearlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_FREE || "",
-    features: ["1 个工作台", "连接 1 个邮箱", "邮件 / Excel 建任务"],
-    free: true,
-  },
-  {
-    id: "personal",
-    name: "个人版",
-    desc: "一个人，完整功能。",
-    monthlyPrice: "$13",
-    yearlyPrice: "$119",
-    yearlyNote: "≈ $10 / 月",
-    monthlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_PERSONAL_MONTHLY || "",
-    yearlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_PERSONAL_YEARLY || "",
-    features: ["无限任务", "连接 1 个邮箱", "邮件 / Excel 建任务", "自定义模板"],
-  },
-  {
-    id: "team",
-    name: "团队版",
-    desc: "一个团队，共享一条流水线，谁在办一眼看清。",
-    monthlyPrice: "$39",
-    yearlyPrice: "$349",
-    yearlyNote: "≈ $29 / 月",
-    monthlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_TEAM_MONTHLY || "",
-    yearlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_TEAM_YEARLY || "",
-    features: ["多人协作", "类型 × 处理者矩阵", "连接团队邮箱", "无限任务"],
-    primary: true,
-  },
-];
+const PLANS: Record<Lang, Plan[]> = {
+  zh: [
+    { id: "free", name: "免费版", desc: "个人体验，把邮件和 Excel 的杂事收成看板。", monthlyPrice: "$0", yearlyPrice: "$0", monthlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_FREE || "", yearlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_FREE || "", features: ["1 个工作台", "连接 1 个邮箱", "邮件 / Excel 建任务"], free: true },
+    { id: "personal", name: "个人版", desc: "一个人，完整功能。", monthlyPrice: "$13", yearlyPrice: "$119", yearlyNote: "≈ $10 / 月", monthlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_PERSONAL_MONTHLY || "", yearlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_PERSONAL_YEARLY || "", features: ["无限任务", "连接 1 个邮箱", "邮件 / Excel 建任务", "自定义模板"] },
+    { id: "team", name: "团队版", desc: "一个团队，共享一条流水线，谁在办一眼看清。", monthlyPrice: "$39", yearlyPrice: "$349", yearlyNote: "≈ $29 / 月", monthlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_TEAM_MONTHLY || "", yearlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_TEAM_YEARLY || "", features: ["多人协作", "类型 × 处理者矩阵", "连接团队邮箱", "无限任务"], primary: true },
+  ],
+  en: [
+    { id: "free", name: "Free", desc: "For individuals — turn email and Excel items into a board.", monthlyPrice: "$0", yearlyPrice: "$0", monthlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_FREE || "", yearlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_FREE || "", features: ["1 workspace", "1 connected email", "Email / Excel tasks"], free: true },
+    { id: "personal", name: "Personal", desc: "One person, full features.", monthlyPrice: "$13", yearlyPrice: "$119", yearlyNote: "≈ $10 /mo", monthlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_PERSONAL_MONTHLY || "", yearlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_PERSONAL_YEARLY || "", features: ["Unlimited tasks", "1 connected email", "Email / Excel tasks", "Custom templates"] },
+    { id: "team", name: "Team", desc: "One team, one pipeline — see who's doing what at a glance.", monthlyPrice: "$39", yearlyPrice: "$349", yearlyNote: "≈ $29 /mo", monthlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_TEAM_MONTHLY || "", yearlyPriceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_TEAM_YEARLY || "", features: ["Collaboration", "Type × handler matrix", "Team email", "Unlimited tasks"], primary: true },
+  ],
+};
 
 export default function PricingPage() {
   const [paddle, setPaddle] = useState<any>(null);
@@ -67,6 +43,13 @@ export default function PricingPage() {
   const [billing, setBilling] = useState<Billing>("monthly");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [lang, setLang] = useState<Lang>("zh");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("lang");
+    if (saved === "en" || saved === "zh") setLang(saved);
+  }, []);
+  function setLanguage(l: Lang) { setLang(l); localStorage.setItem("lang", l); }
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -92,8 +75,8 @@ export default function PricingPage() {
 
   function subscribe(plan: Plan) {
     const priceId = billing === "monthly" ? plan.monthlyPriceId : plan.yearlyPriceId;
-    if (!priceId) { setError("该套餐还未配置价格，请稍后再试。"); return; }
-    if (!paddle) { setError("支付组件加载中，请稍后重试。"); return; }
+    if (!priceId) { setError(t(lang, "pricingNotConfigured")); return; }
+    if (!paddle) { setError(t(lang, "paddleLoading")); return; }
     setError("");
     setLoading(true);
     paddle.Checkout.open({
@@ -104,22 +87,28 @@ export default function PricingPage() {
     setLoading(false);
   }
 
+  const plans = PLANS[lang];
+
   return (
     <main style={{ maxWidth: 960, margin: "0 auto", padding: "48px 24px" }}>
-      <a href="/" style={{ fontSize: 14, color: "var(--accent)", display: "inline-block", marginBottom: 16 }}>← 返回首页</a>
-      <h1 style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.01em", margin: "0 0 8px" }}>选择套餐</h1>
-      <p style={{ color: "var(--muted)", margin: "0 0 28px" }}>免费开始，随时升级。所有套餐都支持邮件自动建任务、Excel 导入。</p>
+      <div className="lang-switch">
+        <button className={lang === "zh" ? "active" : ""} onClick={() => setLanguage("zh")}>中</button>
+        <button className={lang === "en" ? "active" : ""} onClick={() => setLanguage("en")}>EN</button>
+      </div>
+      <a href="/" style={{ fontSize: 14, color: "var(--accent)", display: "inline-block", marginBottom: 16 }}>{t(lang, "backHome")}</a>
+      <h1 style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.01em", margin: "0 0 8px" }}>{t(lang, "pricingTitle")}</h1>
+      <p style={{ color: "var(--muted)", margin: "0 0 28px" }}>{t(lang, "pricingSub")}</p>
 
       <div className="seg" style={{ marginBottom: 24 }}>
-        <button className="seg-btn" data-on={billing === "monthly"} onClick={() => setBilling("monthly")}>月付</button>
-        <button className="seg-btn" data-on={billing === "yearly"} onClick={() => setBilling("yearly")}>年付 · 省约 25%</button>
+        <button className="seg-btn" data-on={billing === "monthly"} onClick={() => setBilling("monthly")}>{t(lang, "monthly")}</button>
+        <button className="seg-btn" data-on={billing === "yearly"} onClick={() => setBilling("yearly")}>{t(lang, "yearly")}</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20, alignItems: "start" }}>
-        {PLANS.map((plan) => {
+        {plans.map((plan) => {
           const price = billing === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
           const note = billing === "yearly" ? plan.yearlyNote : null;
-          const suffix = billing === "monthly" ? "/ 月" : "/ 年";
+          const suffix = billing === "monthly" ? t(lang, "perMonth") : t(lang, "perYear");
           return (
             <div key={plan.id} style={{
               border: `1px solid ${plan.primary ? "var(--accent)" : "var(--border)"}`,
@@ -140,7 +129,7 @@ export default function PricingPage() {
                 onClick={() => subscribe(plan)}
                 disabled={loading}
               >
-                {plan.free ? "免费开始" : "订阅"}
+                {plan.free ? t(lang, "freeStart") : t(lang, "subscribe")}
               </button>
             </div>
           );
@@ -148,7 +137,7 @@ export default function PricingPage() {
       </div>
 
       {error && <p style={{ color: "var(--danger)", fontSize: 13, marginTop: 16 }}>{error}</p>}
-      <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 24 }}>支付由 Paddle 处理，Paddle 为记录商户（Merchant of Record）。</p>
+      <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 24 }}>{t(lang, "paddleNote")}</p>
     </main>
   );
 }
