@@ -13,8 +13,8 @@ workspace 1─n email_account
 task n─1 user(publisher)  ·  task handler = 成员(user_id) 或 外部姓名(handler_name)
 
 （service-role 专属，无工作区归属）：
-user 1─n subscription（Paddle 订阅镜像）
-webhook_log / paddle_events（调试与审计日志）
+user 1─n subscription（Stripe 订阅镜像）
+webhook_log（调试日志，Stripe webhook 也写这里）/ paddle_events（旧 Paddle 日志，已弃用）
 ```
 
 ## 2. 表结构
@@ -153,7 +153,7 @@ create table public.webhook_log (
 );
 ```
 
-### paddle_events（Paddle webhook 事件日志；无 RLS 策略 = 仅 service role）
+### paddle_events（旧 Paddle webhook 事件日志，已弃用；无 RLS 策略 = 仅 service role）
 ```sql
 create table public.paddle_events (
   id bigint generated always as identity primary key,
@@ -163,13 +163,15 @@ create table public.paddle_events (
 );
 ```
 
-### subscriptions（订阅状态镜像，Paddle subscription.* 事件驱动；无 RLS 策略 = 仅 service role）
+### subscriptions（订阅状态镜像，Stripe 事件驱动；paddle_* 为旧字段保留兼容；无 RLS 策略 = 仅 service role）
 ```sql
 create table public.subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade,
-  paddle_subscription_id text not null unique,
+  paddle_subscription_id text unique,
   paddle_customer_id text,
+  stripe_subscription_id text,
+  stripe_customer_id text,
   price_id text,
   status text,
   created_at timestamptz not null default now(),

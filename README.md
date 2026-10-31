@@ -9,7 +9,7 @@
 - **核心**：多任务追踪 + 多人协同更新
 - **摄取**：邮件「接受关键词」自动建立任务（待确认草稿）；邮件「回复关键词」自动更新状态；Excel 导入
 - **模板**：状态流水线 + 类型×处理者矩阵 + 接受/回复关键词，中英双语，界面语言跟随模板
-- **商业化**：Paddle 订阅（免费 / 个人版 / 团队版）
+- **商业化**：Stripe 订阅（免费 / 个人版 / 团队版）
 - **后期**：WhatsApp / 照片追踪（第二增长曲线，暂缓）
 
 ## 文档索引
@@ -21,7 +21,7 @@
 | [docs/03-ingestion.md](docs/03-ingestion.md) | 邮件 + Excel 摄取技术方案（监测方式、关键词、线程归属、列映射） |
 | [docs/04-backend.md](docs/04-backend.md) | 后端架构 + API 端点 + 认证授权 + 多人协作/实时 + 安全 |
 | [docs/05-roadmap.md](docs/05-roadmap.md) | 分阶段里程碑 + 验收标准 + 收费标准 + AI 成本 |
-| [docs/06-run-locally.md](docs/06-run-locally.md) | 本地跑起来 step-by-step（Supabase/Aurinko/Resend/Paddle/Next.js 配置） |
+| [docs/06-run-locally.md](docs/06-run-locally.md) | 本地跑起来 step-by-step（Supabase/Aurinko/Resend/Stripe/Next.js 配置） |
 
 ## 交互原型
 
@@ -41,7 +41,7 @@
 | 前端 | Next.js 14（App Router）+ React + TypeScript |
 | 数据库 | Supabase（Postgres / Auth / Realtime / Storage） |
 | 邮件接入 | Aurinko 统一邮箱 API（OAuth 连接 Outlook / Office365，**主**）+ Resend inbound（转发兜底） |
-| 支付 | Paddle（订阅 + webhook） |
+| 支付 | Stripe（Checkout + webhook） |
 | 部署 | Vercel（前端）+ Supabase（后端） |
 | AI | 可选第二层（规则优先，$0 起步） |
 
@@ -70,7 +70,8 @@
 | [app/api/workspaces/[id]/members/route.ts](app/api/workspaces/[id]/members/route.ts) | 成员列表 + 添加成员 |
 | [app/api/workspaces/[id]/email/route.ts](app/api/workspaces/[id]/email/route.ts) | 查询/设置/断开收件邮箱 |
 | [app/api/workspaces/[id]/email/connect/route.ts](app/api/workspaces/[id]/email/connect/route.ts) | 发起 Aurinko「连接邮箱」 |
-| [app/api/paddle/webhook/route.ts](app/api/paddle/webhook/route.ts) | Paddle webhook（验签 + 订阅状态镜像） |
+| [app/api/stripe/checkout/route.ts](app/api/stripe/checkout/route.ts) | 创建 Stripe Checkout 会话（订阅） |
+| [app/api/stripe/webhook/route.ts](app/api/stripe/webhook/route.ts) | Stripe webhook（验签 + 订阅状态镜像） |
 
 ### 共享库（`lib/`）
 
@@ -91,7 +92,7 @@
 | [app/login/page.tsx](app/login/page.tsx) | 登录/注册（邮箱+密码） |
 | [app/onboarding/page.tsx](app/onboarding/page.tsx) | 建工作区（调 `create_workspace` RPC） |
 | [app/board/page.tsx](app/board/page.tsx) | 看板/表格双视图 + 筛选/搜索/排序 + 实时刷新 + 任务弹窗 |
-| [app/pricing/page.tsx](app/pricing/page.tsx) | 定价页（Paddle 订阅） |
+| [app/pricing/page.tsx](app/pricing/page.tsx) | 定价页（Stripe 订阅） |
 | [app/layout.tsx](app/layout.tsx) | 根布局（标题/语言） |
 | [components/TemplateEditor.tsx](components/TemplateEditor.tsx) | 模板编辑器（流水线/矩阵/关键词） |
 | [components/InboxDrawer.tsx](components/InboxDrawer.tsx) | 收件箱抽屉（连接邮箱 + 草稿确认/忽略） |

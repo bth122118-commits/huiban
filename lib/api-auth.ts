@@ -14,7 +14,7 @@ export type AuthResult = { userId: string } | { error: Response };
 export const MEMBER_ROLES = ["owner", "admin", "member"];
 export const ADMIN_ROLES = ["owner", "admin"];
 
-async function resolveUser(req: Request): Promise<string | null> {
+export async function resolveUser(req: Request): Promise<string | null> {
   const authz = req.headers.get("authorization") || "";
   const token = authz.startsWith("Bearer ") ? authz.slice(7).trim() : "";
   if (!token) return null;

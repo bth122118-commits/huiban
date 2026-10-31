@@ -5,7 +5,7 @@
 ## 0. 准备
 
 - Node.js 18+
-- 免费账号：Supabase、Aurinko（连接邮箱）、Resend（邮件兜底，可选）、Paddle（支付，可选）
+- 免费账号：Supabase、Aurinko（连接邮箱）、Resend（邮件兜底，可选）、Stripe（支付，可选）
 
 ## 1. Supabase（数据库 + 认证）
 
@@ -36,11 +36,11 @@
    ```
 4. 记下 webhook signing secret → 第 5 步的 `RESEND_WEBHOOK_SECRET`（未填则跳过验签）。
 
-## 4. Paddle（支付，可选）
+## 4. Stripe（支付，可选）
 
-1. [paddle.com](https://paddle.com) → Sandbox 建产品/价格。
-2. 记下 Client Token 与各档 price id → 填第 5 步的 `NEXT_PUBLIC_PADDLE_*`。
-3. Webhook 指向 `/api/paddle/webhook`，secret 填 `PADDLE_WEBHOOK_SECRET`。
+1. [stripe.com](https://stripe.com) → 开发者 → API keys 记下 `Secret key`（测试用 `sk_test_...`）。
+2. Developers → Webhooks → Add endpoint，URL 填 `https://<你的域名>/api/stripe/webhook`，勾选 `checkout.session.completed` 与 `customer.subscription.*`。
+3. 记下 webhook 的 `Signing secret`（`whsec_...`）→ 填第 5 步的 `STRIPE_WEBHOOK_SECRET`。
 
 ## 5. Next.js 工程
 
@@ -79,15 +79,9 @@ AURINKO_CLIENT_ID=...
 AURINKO_CLIENT_SECRET=...
 AURINKO_WEBHOOK_SECRET=...         # 可选，未填则跳过验签
 
-# Paddle（可选）
-NEXT_PUBLIC_PADDLE_ENV=sandbox
-NEXT_PUBLIC_PADDLE_CLIENT_TOKEN=...
-PADDLE_WEBHOOK_SECRET=...          # 可选，未填则跳过验签
-NEXT_PUBLIC_PADDLE_PRICE_FREE=...
-NEXT_PUBLIC_PADDLE_PRICE_PERSONAL_MONTHLY=...
-NEXT_PUBLIC_PADDLE_PRICE_PERSONAL_YEARLY=...
-NEXT_PUBLIC_PADDLE_PRICE_TEAM_MONTHLY=...
-NEXT_PUBLIC_PADDLE_PRICE_TEAM_YEARLY=...
+# Stripe（可选）
+STRIPE_SECRET_KEY=sk_...          # 服务端密钥
+STRIPE_WEBHOOK_SECRET=whsec_...   # webhook 验签密钥
 ```
 
 > 后端 `app/api/*` 用 `SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY`（admin client）；前端 `lib/supabase-browser.ts` 用 `NEXT_PUBLIC_*`（走 RLS）。
@@ -110,7 +104,7 @@ npm run dev
    应看到 5 个预设模板（3 中文 + 2 英文）被克隆进来。
 3. **看板改状态**：点某任务「下一状态」或表格下拉 → `tasks.status_index` 变、`handler_id` 按矩阵切换、`task_events` 多一条。
 4. **邮件**：发一封带关键词的邮件到 Resend inbound 地址，或走 Aurinko 连接邮箱 → 查 `inbox_items` 出现 `pending` 记录；收件箱「确认入板」→ 任务入板。
-5. **支付**：定价页点订阅 → Paddle Checkout 弹出；支付后 `/api/paddle/webhook` 收到 `subscription.*` 事件、`subscriptions` 表多一行。
+5. **支付**：定价页点订阅 → 跳转 Stripe Checkout；支付后 `/api/stripe/webhook` 收到事件、`subscriptions` 表多一行。
 
 ## 10. 已知待补
 

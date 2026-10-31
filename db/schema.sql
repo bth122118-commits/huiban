@@ -161,18 +161,25 @@ create table if not exists public.paddle_events (
 );
 alter table public.paddle_events enable row level security;  -- 无策略 = 仅 service role
 
--- ── subscriptions：订阅状态镜像（Paddle subscription.* 事件驱动）──────
+-- ── subscriptions：订阅状态镜像（Stripe 事件驱动；paddle_* 为旧字段，保留兼容）──
 create table if not exists public.subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade,
-  paddle_subscription_id text not null unique,
+  paddle_subscription_id text unique,
   paddle_customer_id text,
+  stripe_subscription_id text,
+  stripe_customer_id text,
   price_id text,
   status text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 alter table public.subscriptions enable row level security;  -- 无策略 = 仅 service role
+create unique index if not exists subscriptions_stripe_idx on public.subscriptions(stripe_subscription_id);
+-- 迁移：老库放宽 paddle_subscription_id 非空约束 + 补 Stripe 列（幂等）
+alter table public.subscriptions alter column paddle_subscription_id drop not null;
+alter table public.subscriptions add column if not exists stripe_subscription_id text;
+alter table public.subscriptions add column if not exists stripe_customer_id text;
 
 -- ── updated_at 触发器 ────────────────────────────────────────────────
 create or replace function public.set_updated_at() returns trigger as $$

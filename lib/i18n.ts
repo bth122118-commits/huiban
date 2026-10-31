@@ -41,8 +41,8 @@ const D: Record<string, Record<string, string>> = {
     pricingTitle: "选择套餐", pricingSub: "免费开始，随时升级。所有套餐都支持邮件自动建任务、Excel 导入。",
     monthly: "月付", yearly: "年付 · 省约 25%", perMonth: "/ 月", perYear: "/ 年",
     freeStart: "免费开始", subscribe: "订阅",
-    paddleNote: "支付由 Paddle 处理，Paddle 为记录商户（Merchant of Record）。",
-    pricingNotConfigured: "该套餐还未配置价格，请稍后再试。", paddleLoading: "支付组件加载中，请稍后重试。",
+    paymentsNote: "支付由 Stripe 处理。",
+    checkoutFailed: "创建结账会话失败，请稍后再试。",
   },
   en: {
     board: "Board", table: "Table", all: "All", mail: "Email", excel: "Excel", manual: "Manual",
@@ -84,8 +84,8 @@ const D: Record<string, Record<string, string>> = {
     pricingTitle: "Choose a plan", pricingSub: "Start free, upgrade anytime. Every plan includes email automation and Excel import.",
     monthly: "Monthly", yearly: "Yearly · save ~25%", perMonth: "/mo", perYear: "/yr",
     freeStart: "Start free", subscribe: "Subscribe",
-    paddleNote: "Payments processed by Paddle, our Merchant of Record.",
-    pricingNotConfigured: "This plan isn't configured with a price yet. Try again later.", paddleLoading: "Payment is loading. Try again.",
+    paymentsNote: "Payments processed by Stripe.",
+    checkoutFailed: "Failed to create checkout. Try again later.",
   },
 };
 
