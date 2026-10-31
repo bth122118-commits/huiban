@@ -44,7 +44,7 @@ export default function OnboardingPage() {
         <button className={lang === "en" ? "active" : ""} onClick={() => setLanguage("en")}>EN</button>
       </div>
       <div className="auth-card">
-        <h1 className="auth-brand">汇办</h1>
+        <h1 className="auth-brand">{t(lang, "brandName")}</h1>
         <p className="auth-tagline">{t(lang, "workspaceTagline")}</p>
 
         <h2 className="auth-title">{t(lang, "createWorkspace")}</h2>
