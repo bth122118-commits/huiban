@@ -28,8 +28,9 @@ export async function POST(req: Request) {
       const customerId = (session.customer as string) || null;
       if (userId && subId) {
         const status = session.payment_status === "paid" ? "active" : "incomplete";
+        const plan = (session.metadata?.plan as string) || null;
         await db.from("subscriptions").upsert(
-          { user_id: userId, stripe_subscription_id: subId, stripe_customer_id: customerId, status },
+          { user_id: userId, stripe_subscription_id: subId, stripe_customer_id: customerId, status, plan },
           { onConflict: "stripe_subscription_id" }
         );
       }

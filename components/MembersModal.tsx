@@ -5,11 +5,13 @@ import { t, type Lang } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
 
 type Member = { id: string; name: string; role: string };
+type Seats = { plan: string | null; limit: number; used: number };
 
 export default function MembersModal({ workspaceId, userId, lang, onClose, onChanged }: {
   workspaceId: string; userId: string; lang: Lang; onClose: () => void; onChanged: () => void;
 }) {
   const [members, setMembers] = useState<Member[]>([]);
+  const [seats, setSeats] = useState<Seats>({ plan: null, limit: 0, used: 0 });
   const [email, setEmail] = useState("");
   const [myName, setMyName] = useState("");
   const [error, setError] = useState("");
@@ -18,6 +20,7 @@ export default function MembersModal({ workspaceId, userId, lang, onClose, onCha
   const load = useCallback(async () => {
     const r = await apiFetch(`/api/workspaces/${workspaceId}/members`).then((x) => x.json());
     setMembers(r.members || []);
+    setSeats(r.seats || { plan: null, limit: 0, used: 0 });
     const me = (r.members || []).find((m: Member) => m.id === userId);
     if (me) setMyName(me.name);
   }, [workspaceId, userId]);
@@ -40,6 +43,8 @@ export default function MembersModal({ workspaceId, userId, lang, onClose, onCha
     load(); onChanged();
   }
 
+  const full = seats.limit > 0 && seats.used >= seats.limit;
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" style={{ width: 460 }} onClick={(e) => e.stopPropagation()}>
@@ -51,11 +56,24 @@ export default function MembersModal({ workspaceId, userId, lang, onClose, onCha
           <button className="btn btn-primary" onClick={rename}>{t(lang, "saveName")}</button>
         </div>
 
-        <p className="section-title">{t(lang, "addMember")}</p>
-        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <p className="section-title">
+          {t(lang, "addMember")}
+          {seats.limit > 0 && <span className="member-role"> · {t(lang, "seatUsed")} {seats.used}/{seats.limit}</span>}
+        </p>
+        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
           <input className="input" style={{ flex: 1 }} value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t(lang, "memberEmail")} />
-          <button className="btn btn-primary" onClick={add}>{t(lang, "add")}</button>
+          <button className="btn btn-primary" onClick={add} disabled={full}>{t(lang, "add")}</button>
         </div>
+        {seats.limit === 0 && (
+          <p className="error-text" style={{ margin: "0 0 12px" }}>
+            {t(lang, "seatNoInvite")} <a href="/pricing" style={{ color: "var(--accent)" }}>{t(lang, "upgrade")} →</a>
+          </p>
+        )}
+        {full && (
+          <p className="error-text" style={{ margin: "0 0 12px" }}>
+            {t(lang, "seatLimitReached")} <a href="/pricing" style={{ color: "var(--accent)" }}>{t(lang, "upgrade")} →</a>
+          </p>
+        )}
 
         <p className="section-title">{t(lang, "memberList")}</p>
         {members.map((m) => (

@@ -88,3 +88,9 @@ export async function resolveMemberIdByName(db: SupabaseClient, workspaceId: str
     .maybeSingle();
   return data?.id || null;
 }
+
+// ── 套餐座位上限（协作者数量，不含 owner）──────────────────────────
+const SEAT_LIMITS: Record<string, number> = { personal: 2, team: 6 };
+export function seatLimit(plan: string | null | undefined): number {
+  return plan ? (SEAT_LIMITS[plan] ?? 0) : 0;
+}
