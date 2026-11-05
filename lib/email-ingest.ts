@@ -28,6 +28,19 @@ function matchKeyword(text: string, keywords: string[]): string | null {
   return keywords.find((k) => t.includes(String(k).toLowerCase())) || null;
 }
 
+// 回复关键词：兼容旧格式（字符串数组 = 推进 +1）和新格式（{keyword, target} = 跳到指定状态）
+function matchReplyKeyword(text: string, replyKeywords: any[]): { keyword: string; target: string | null } | null {
+  const t = text.toLowerCase();
+  for (const item of replyKeywords || []) {
+    if (typeof item === "string") {
+      if (t.includes(item.toLowerCase())) return { keyword: item, target: null };
+    } else if (item && typeof item.keyword === "string") {
+      if (t.includes(item.keyword.toLowerCase())) return { keyword: item.keyword, target: item.target || null };
+    }
+  }
+  return null;
+}
+
 async function applyStatusTransition(db: SupabaseClient, task: any, template: any, newIndex: number, note: string) {
   const statuses: string[] = template.statuses || [];
   const categories: string[] = template.categories || [];
@@ -62,8 +75,8 @@ export async function ingestMessage(
 
   for (const tpl of templates) {
     if (reply) {
-      const kw = matchKeyword(text, tpl.reply_keywords || []);
-      if (!kw) continue;
+      const matched = matchReplyKeyword(text, tpl.reply_keywords || []);
+      if (!matched) continue;
 
       let task: any = null;
       for (const r of refs) {
@@ -78,12 +91,17 @@ export async function ingestMessage(
       if (!task) continue;
 
       const statuses: string[] = tpl.statuses || [];
-      const target = Math.min(task.status_index + 1, statuses.length - 1);
-      await applyStatusTransition(db, task, tpl, target, `回复邮件「${kw}」`);
+      let target = task.status_index + 1;
+      if (matched.target) {
+        const idx = statuses.indexOf(matched.target);
+        if (idx >= 0) target = idx;
+      }
+      target = Math.min(Math.max(target, 0), statuses.length - 1);
+      await applyStatusTransition(db, task, tpl, target, `回复邮件「${matched.keyword}」`);
       await db.from("inbox_items").insert({
         workspace_id, template_id: tpl.id, kind: "reply",
         from_email: msg.from, subject: msg.subject, body: msg.body,
-        matched_keyword: kw, ref_task_id: task.id, target_status_index: target,
+        matched_keyword: matched.keyword, ref_task_id: task.id, target_status_index: target,
         thread_id: msg.inReplyTo || msg.references || null, status: "applied",
       });
       return { ok: true, action: "reply_applied", task_id: task.id, status: statuses[target] };

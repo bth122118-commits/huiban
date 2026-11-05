@@ -15,11 +15,10 @@ export default function TemplateEditor({ templateId, workspaceId, lang, onClose,
   const [categories, setCategories] = useState<string[]>([]);
   const [matrix, setMatrix] = useState<string[][]>([]);
   const [keywords, setKeywords] = useState<string[]>([]);
-  const [replyKeywords, setReplyKeywords] = useState<string[]>([]);
+  const [replyKeywords, setReplyKeywords] = useState<{ keyword: string; target: string }[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [kwInput, setKwInput] = useState("");
-  const [rkwInput, setRkwInput] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -36,7 +35,10 @@ export default function TemplateEditor({ templateId, workspaceId, lang, onClose,
         const hm: (string | null)[][] = tpl.handler_matrix || [];
         setMatrix(ct.map((_, ci) => st.map((_, si) => hm[ci]?.[si] || "")));
         setKeywords(tpl.keywords || []);
-        setReplyKeywords(tpl.reply_keywords || []);
+        const rawKw = tpl.reply_keywords || [];
+        setReplyKeywords((Array.isArray(rawKw) ? rawKw : []).map((x: any) =>
+          typeof x === "string" ? { keyword: x, target: "" } : { keyword: x?.keyword || "", target: x?.target || "" }
+        ));
       }
       setLoading(false);
     })();
@@ -72,7 +74,7 @@ export default function TemplateEditor({ templateId, workspaceId, lang, onClose,
     setSaving(true);
     await apiFetch(`/api/templates/${templateId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), statuses: st, categories: ct, handler_matrix: hm, keywords, reply_keywords: replyKeywords }),
+      body: JSON.stringify({ name: name.trim(), statuses: st, categories: ct, handler_matrix: hm, keywords, reply_keywords: replyKeywords.filter((it) => it.keyword.trim()).map((it) => ({ keyword: it.keyword.trim(), target: it.target })) }),
     });
     setSaving(false);
     onSaved();
@@ -144,7 +146,7 @@ export default function TemplateEditor({ templateId, workspaceId, lang, onClose,
         </div>
 
         <KeywordEditor label={t(lang, "acceptKw")} lang={lang} items={keywords} setItems={setKeywords} input={kwInput} setInput={setKwInput} />
-        <KeywordEditor label={t(lang, "replyKw")} lang={lang} items={replyKeywords} setItems={setReplyKeywords} input={rkwInput} setInput={setRkwInput} />
+        <ReplyKeywordEditor label={t(lang, "replyKw")} lang={lang} statuses={statuses} items={replyKeywords} setItems={setReplyKeywords} />
 
         <div className="modal-actions">
           <div className="spacer">
@@ -173,6 +175,34 @@ function KeywordEditor({ label, lang, items, setItems, input, setInput }: {
         {items.length === 0 && <span style={{ color: "var(--muted)", fontSize: 13 }}>{t(lang, "noKw")}</span>}
       </div>
       <input className="input" style={{ maxWidth: 320 }} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} placeholder={t(lang, "kwPlaceholder")} />
+    </div>
+  );
+}
+
+function ReplyKeywordEditor({ label, lang, statuses, items, setItems }: {
+  label: string; lang: Lang; statuses: string[]; items: { keyword: string; target: string }[]; setItems: (v: { keyword: string; target: string }[]) => void;
+}) {
+  const [input, setInput] = useState("");
+  function add() {
+    const k = input.trim();
+    if (k && !items.some((it) => it.keyword === k)) setItems([...items, { keyword: k, target: "" }]);
+    setInput("");
+  }
+  return (
+    <div className="kw-editor">
+      <p className="section-title">{label}</p>
+      {items.map((it) => (
+        <div key={it.keyword} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <span className="kw-chip">{it.keyword}</span>
+          <select className="select" style={{ padding: "4px 8px" }} value={it.target} onChange={(e) => setItems(items.map((x) => (x.keyword === it.keyword ? { ...x, target: e.target.value } : x)))}>
+            <option value="">{t(lang, "nextStep")}</option>
+            {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <button className="kw-remove" onClick={() => setItems(items.filter((x) => x.keyword !== it.keyword))} aria-label="remove">×</button>
+        </div>
+      ))}
+      {items.length === 0 && <span style={{ color: "var(--muted)", fontSize: 13 }}>{t(lang, "noKw")}</span>}
+      <input className="input" style={{ maxWidth: 320, marginTop: 8 }} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} placeholder={t(lang, "kwPlaceholder")} />
     </div>
   );
 }
