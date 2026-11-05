@@ -36,6 +36,7 @@ a:focus-visible, .btn:focus-visible { outline: none; box-shadow: var(--focus-rin
 .nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; padding-right: 96px; }
 .brand { font-weight: 600; font-size: 18px; letter-spacing: -0.01em; color: var(--fg); }
 .brand small { color: var(--muted); font-weight: 400; margin-left: 4px; font-size: 14px; }
+.brand-logo { width: 22px; height: 22px; border-radius: 5px; vertical-align: middle; margin-right: 6px; }
 .nav-links { display: flex; gap: 24px; align-items: center; font-size: 14px; }
 .nav-links a { color: var(--fg); }
 
@@ -94,7 +95,7 @@ footer a { color: var(--muted); }
 </div>
 
 <nav class="container nav">
-  <div class="brand">BuildTrace <small data-i18n="brand-zh">汇办</small></div>
+  <div class="brand"><img class="brand-logo" src="/favicon.png" alt="">BuildTrace <small data-i18n="brand-zh">汇办</small></div>
   <div class="nav-links">
     <a href="#features" data-i18n="nav-features">功能</a>
     <a href="#how" data-i18n="nav-how">怎么用</a>
