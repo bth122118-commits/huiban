@@ -76,6 +76,14 @@ export default function MembersModal({ workspaceId, userId, lang, onClose, onCha
         )}
 
         <p className="section-title">{t(lang, "memberList")}</p>
+        <div className="seat-row">
+          {Array.from({ length: Math.max(seats.limit + 1, members.length) }).map((_, i) => {
+            const m = members[i];
+            return m
+              ? <span key={i} className="seat-avatar" title={m.name}>{(m.name || "?").slice(0, 1).toUpperCase()}</span>
+              : <span key={i} className="seat-avatar seat-empty" />;
+          })}
+        </div>
         {members.map((m) => (
           <div key={m.id} className="member-row">
             <span className="member-name">{m.name}{m.id === userId ? t(lang, "me") : ""}</span>
