@@ -23,15 +23,11 @@ export type IngestResult =
   | { ok: true; action: "draft_created"; keyword: string }
   | { ok: true; skipped: "no_match" | "duplicate" };
 
-function matchKeyword(text: string, keywords: string[]): string | null {
+// 关键词匹配：兼容旧格式（字符串数组）和新格式（{keyword, target}）。
+// 接受关键词 target = 起始列；回复关键词 target = 目标列；空 target = 默认行为。
+function matchKeywordEntry(text: string, entries: any[]): { keyword: string; target: string | null } | null {
   const t = text.toLowerCase();
-  return keywords.find((k) => t.includes(String(k).toLowerCase())) || null;
-}
-
-// 回复关键词：兼容旧格式（字符串数组 = 推进 +1）和新格式（{keyword, target} = 跳到指定状态）
-function matchReplyKeyword(text: string, replyKeywords: any[]): { keyword: string; target: string | null } | null {
-  const t = text.toLowerCase();
-  for (const item of replyKeywords || []) {
+  for (const item of entries || []) {
     if (typeof item === "string") {
       if (t.includes(item.toLowerCase())) return { keyword: item, target: null };
     } else if (item && typeof item.keyword === "string") {
@@ -75,7 +71,7 @@ export async function ingestMessage(
 
   for (const tpl of templates) {
     if (reply) {
-      const matched = matchReplyKeyword(text, tpl.reply_keywords || []);
+      const matched = matchKeywordEntry(text, tpl.reply_keywords || []);
       if (!matched) continue;
 
       let task: any = null;
@@ -107,20 +103,26 @@ export async function ingestMessage(
       return { ok: true, action: "reply_applied", task_id: task.id, status: statuses[target] };
     }
 
-    const kw = matchKeyword(text, tpl.keywords || []);
-    if (!kw) continue;
+    const matched = matchKeywordEntry(text, tpl.keywords || []);
+    if (!matched) continue;
 
     if (msg.inReplyTo || msg.references) {
       const { data: dup } = await db.from("inbox_items").select("id").eq("thread_id", msg.inReplyTo || msg.references).eq("status", "pending").maybeSingle();
       if (dup) return { ok: true, skipped: "duplicate" };
     }
 
+    let startIndex = 0;
+    if (matched.target) {
+      const idx = (tpl.statuses || []).indexOf(matched.target);
+      if (idx >= 0) startIndex = idx;
+    }
+
     await db.from("inbox_items").insert({
       workspace_id, template_id: tpl.id, kind: "create",
       from_email: msg.from, subject: msg.subject, body: msg.body,
-      matched_keyword: kw, thread_id: msg.messageId || null, status: "pending",
+      matched_keyword: matched.keyword, target_status_index: startIndex, thread_id: msg.messageId || null, status: "pending",
     });
-    return { ok: true, action: "draft_created", keyword: kw };
+    return { ok: true, action: "draft_created", keyword: matched.keyword };
   }
 
   return { ok: true, skipped: "no_match" };
