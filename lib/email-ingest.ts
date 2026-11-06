@@ -71,8 +71,16 @@ export async function ingestMessage(
 
   for (const tpl of templates) {
     if (reply) {
-      const matched = matchKeywordEntry(text, tpl.reply_keywords || []);
+      // 回复关键词只看正文（主题会带「Re: 天台开工」这样的旧阶段，会抢词）
+      const replyText = msg.body && msg.body.trim() ? msg.body : text;
+      const matched = matchKeywordEntry(replyText, tpl.reply_keywords || []);
       if (!matched) continue;
+
+      // 去重：同一线程已处理过的回复跳过（防 webhook 重复投递导致重复推进）
+      if (msg.inReplyTo || msg.references) {
+        const { data: dup } = await db.from("inbox_items").select("id").eq("thread_id", msg.inReplyTo || msg.references).eq("kind", "reply").eq("status", "applied").maybeSingle();
+        if (dup) return { ok: true, skipped: "duplicate" };
+      }
 
       let task: any = null;
       for (const r of refs) {
@@ -91,6 +99,10 @@ export async function ingestMessage(
       if (matched.target) {
         const idx = statuses.indexOf(matched.target);
         if (idx >= 0) target = idx;
+      } else {
+        // 没显式设目标时，若有关键词同名的状态，自动映射到它（如「完工」→「完工」栏）
+        const sameName = statuses.indexOf(matched.keyword);
+        if (sameName >= 0) target = sameName;
       }
       target = Math.min(Math.max(target, 0), statuses.length - 1);
       await applyStatusTransition(db, task, tpl, target, `回复邮件「${matched.keyword}」`);
@@ -115,6 +127,10 @@ export async function ingestMessage(
     if (matched.target) {
       const idx = (tpl.statuses || []).indexOf(matched.target);
       if (idx >= 0) startIndex = idx;
+    } else {
+      // 没显式设起始列时，若有关键词同名的状态，自动落到它
+      const sameName = (tpl.statuses || []).indexOf(matched.keyword);
+      if (sameName >= 0) startIndex = sameName;
     }
 
     await db.from("inbox_items").insert({
