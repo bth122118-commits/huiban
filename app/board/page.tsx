@@ -240,7 +240,8 @@ export default function BoardPage() {
           </div>
         )}
 
-        <a href="/pricing" className="btn btn-secondary" style={{ marginLeft: "auto" }}>{t(lang, "upgrade")}</a>
+        <a href="/account" className="btn btn-secondary" style={{ marginLeft: "auto" }}>{t(lang, "account")}</a>
+        <a href="/pricing" className="btn btn-secondary">{t(lang, "upgrade")}</a>
         <button className="btn btn-primary" onClick={() => setModal({ mode: "create" })}>{t(lang, "newTask")}</button>
         {online.length > 0 && (
           <div className="presence">
