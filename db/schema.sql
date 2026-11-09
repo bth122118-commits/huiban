@@ -172,6 +172,7 @@ create table if not exists public.subscriptions (
   price_id text,
   status text,
   plan text,
+  renews_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -182,6 +183,7 @@ alter table public.subscriptions alter column paddle_subscription_id drop not nu
 alter table public.subscriptions add column if not exists stripe_subscription_id text;
 alter table public.subscriptions add column if not exists stripe_customer_id text;
 alter table public.subscriptions add column if not exists plan text;
+alter table public.subscriptions add column if not exists renews_at timestamptz;
 
 -- ── updated_at 触发器 ────────────────────────────────────────────────
 create or replace function public.set_updated_at() returns trigger as $$

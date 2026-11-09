@@ -37,15 +37,29 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [lang, setLang] = useState<Lang>("zh");
+  const [subscription, setSubscription] = useState<{ plan: string | null; status: string; renews_at: string | null } | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("lang");
     if (saved === "en" || saved === "zh") setLang(saved);
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUserId(data.user.id);
+      if (data.user) {
+        setUserId(data.user.id);
+        apiFetch("/api/billing").then((r) => r.json()).then((j) => setSubscription(j.subscription || null)).catch(() => {});
+      }
     });
   }, []);
   function setLanguage(l: Lang) { setLang(l); localStorage.setItem("lang", l); }
+
+  function daysLeft(iso: string | null): number | null {
+    if (!iso) return null;
+    return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000));
+  }
+  function subscribedLabel(): string {
+    const d = daysLeft(subscription?.renews_at ?? null);
+    if (d === null) return t(lang, "subscribed");
+    return lang === "zh" ? `${t(lang, "subscribed")} · 剩余 ${d} 天` : `${t(lang, "subscribed")} · ${d} days left`;
+  }
 
   async function subscribe(plan: Plan) {
     if (plan.free) { window.location.href = "/board"; return; }
@@ -84,6 +98,7 @@ export default function PricingPage() {
           const price = billing === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
           const note = billing === "yearly" ? plan.yearlyNote : null;
           const suffix = billing === "monthly" ? t(lang, "perMonth") : t(lang, "perYear");
+          const current = !!(subscription && subscription.plan === plan.id && subscription.status === "active");
           return (
             <div key={plan.id} style={{ border: `1px solid ${plan.primary ? "var(--accent)" : "var(--border)"}`, borderRadius: 12, padding: 28, background: "var(--surface)" }}>
               <div style={{ fontSize: 14, color: "var(--accent)", fontWeight: 600, marginBottom: 4 }}>{plan.name}</div>
@@ -93,9 +108,13 @@ export default function PricingPage() {
               <ul style={{ paddingLeft: 18, margin: "0 0 24px", fontSize: 14, color: "var(--fg)", lineHeight: 2 }}>
                 {plan.features.map((f) => <li key={f}>{f}</li>)}
               </ul>
-              <button className={plan.primary ? "btn btn-primary" : "btn btn-secondary"} style={{ width: "100%" }} onClick={() => subscribe(plan)} disabled={loading}>
-                {plan.free ? t(lang, "freeStart") : t(lang, "subscribe")}
-              </button>
+              {current ? (
+                <div className="btn btn-secondary" style={{ width: "100%", textAlign: "center", cursor: "default" }}>{subscribedLabel()}</div>
+              ) : (
+                <button className={plan.primary ? "btn btn-primary" : "btn btn-secondary"} style={{ width: "100%" }} onClick={() => subscribe(plan)} disabled={loading}>
+                  {plan.free ? t(lang, "freeStart") : t(lang, "subscribe")}
+                </button>
+              )}
             </div>
           );
         })}

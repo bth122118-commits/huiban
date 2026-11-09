@@ -44,11 +44,12 @@ export async function POST(req: Request) {
     } else if (event.type === "customer.subscription.deleted") {
       const sub = event.data.object as Stripe.Subscription;
       await db.from("subscriptions").update({ status: "canceled" }).eq("stripe_subscription_id", sub.id);
-    } else if (event.type === "customer.subscription.updated") {
-      // 同步状态，但跳过 incomplete（首笔未结算的中间态，别覆盖 active）
+    } else if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.created") {
+      // 同步状态 + 续期时间，但跳过 incomplete（首笔未结算的中间态，别覆盖 active）
       const sub = event.data.object as Stripe.Subscription;
       if (sub.status !== "incomplete") {
-        await db.from("subscriptions").update({ status: sub.status }).eq("stripe_subscription_id", sub.id);
+        const renewsAt = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null;
+        await db.from("subscriptions").update({ status: sub.status, renews_at: renewsAt }).eq("stripe_subscription_id", sub.id);
       }
     }
   } catch (e: any) {
